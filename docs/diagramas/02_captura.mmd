@@ -1,0 +1,52 @@
+%% InvierteYa · Sesión 2 · Diagrama 2: Captura, asignación de unidades y orden por lotes
+%% Pasarela, adquirente, banco fiduciario, casa de bolsa, BVC y CVV se SIMULAN en el prototipo.
+sequenceDiagram
+    autonumber
+    actor U as Usuario (María)
+    participant APP as App InvierteYa
+    participant BE as Backend InvierteYa
+    participant PAY as Servicio de pagos
+    participant PSP as Pasarela aliada
+    participant ACQ as Banco adquirente
+    participant FID as Banco fiduciario (cuenta del fideicomiso)
+    participant IA as Motor IA (tutor)
+    participant ORD as Servicio de órdenes
+    participant CB as Casa de bolsa
+    participant BVC as BVC
+    participant CVV as CVV
+
+    Note over BE,PAY: Viene de una autorización aprobada (diagrama 1)
+    PAY->>PSP: POST /captures {authorization_id, amount, Idempotency-Key}
+    PSP->>ACQ: ISO 8583 MTI 0220 (aviso de completación, campos 4, 11, 37, 38)
+    ACQ-->>PSP: MTI 0230 (campo 39 = 00)
+    PSP-->>PAY: 200 {status: CAPTURED, rrn}
+
+    alt Captura confirmada
+        PAY->>BE: Aporte CAPTURADO
+        BE->>BE: Unidades = monto / valor de la unidad del portafolio Conservador (ej.: $20 / $1,25 = 16)
+        BE->>BE: Registra unidades a nombre de María (estado ASIGNADO)
+        BE->>IA: Paso "primer aporte" + perfil Conservador
+        IA-->>BE: Lección: "¿Qué es una unidad de participación?"
+        BE-->>APP: Aporte exitoso + 16 unidades + lección del tutor
+        APP-->>U: Comprobante y explicación paso a paso
+    else Falla la captura o la asignación
+        PAY->>BE: Aporte EN_REVERSO
+        Note over PAY,PSP: Reverso de la autorización (diagrama 3)
+    end
+
+    Note over ACQ,FID: T+1: el adquirente liquida (menos comisión) en la cuenta del fideicomiso
+    ACQ->>FID: Abono por clearing del lote de aportes del día
+
+    loop Batch diario al cierre del mercado
+        ORD->>ORD: Consolida aportes del día de cada portafolio (Conservador, Moderado, Agresivo)
+        ORD->>FID: Propuesta de órdenes por lote
+        FID->>FID: Revisa y aprueba (el fiduciario es quien administra el patrimonio)
+        FID->>CB: Instrucción de compra a nombre del fideicomiso
+        CB->>BVC: Órdenes en la BVC
+        BVC-->>CB: Ejecución (cantidades y precios)
+        CB->>CVV: Liquidación y registro de títulos a nombre del fideicomiso
+        CVV-->>CB: Confirmación de custodia
+        CB-->>FID: Estado de cuenta de la operación
+        FID-->>ORD: Confirmación de ejecución
+        ORD->>BE: Recalcula el valor de la unidad de cada portafolio
+    end

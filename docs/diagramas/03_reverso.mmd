@@ -1,0 +1,48 @@
+%% InvierteYa · Sesión 2 · Diagrama 3: Reverso de una autorización
+%% Pasarela, adquirente, suiche y emisor se SIMULAN en el prototipo.
+%% Regla: solo se reversa ANTES de asignar unidades. Después de eso, cualquier devolución es un rescate.
+sequenceDiagram
+    autonumber
+    actor U as Usuario (María)
+    participant APP as App InvierteYa
+    participant BE as Backend InvierteYa
+    participant DB as BD transaccional
+    participant PAY as Servicio de pagos
+    participant PSP as Pasarela aliada
+    participant ACQ as Banco adquirente
+    participant SW as Suiche
+    participant ISS as Banco emisor
+    participant EXC as Cola de excepciones
+
+    alt Caso A: solicitud duplicada (misma Idempotency-Key)
+        APP->>BE: POST /v1/aportes (reintento del usuario o de la red)
+        BE->>DB: Busca la Idempotency-Key
+        DB-->>BE: Ya existe el aporte original
+        BE-->>APP: Devuelve el resultado original, sin nueva autorización
+        Note over BE,DB: No se cobra dos veces ni hace falta reversar
+    else Caso B: timeout de autorización o falla de captura/asignación
+        Note over PAY: Disparador: sin respuesta en 30 s (diagrama 1) o error tras autorizar (diagrama 2)
+        PAY->>DB: Aporte -> EN_REVERSO
+        PAY->>PSP: POST /reversals {original_reference, amount, reason, Idempotency-Key}
+        PSP->>ACQ: ISO 8583 MTI 0400 (campo 90 = datos de la transacción original, campos 4, 11)
+        ACQ->>SW: MTI 0400
+        SW->>ISS: MTI 0400
+        ISS->>ISS: Busca la autorización original y libera la retención (si existía)
+
+        alt Reverso confirmado
+            ISS-->>SW: MTI 0410 (campo 39 = 00)
+            SW-->>ACQ: MTI 0410
+            ACQ-->>PSP: MTI 0410
+            PSP-->>PAY: 200 {status: REVERSED}
+            PAY->>DB: Aporte -> REVERSADO
+            BE-->>APP: "No se realizó el cobro"
+            APP-->>U: Si ves una retención, tu banco la liberará
+        else Sin respuesta al reverso
+            loop Hasta 3 reintentos (cada 60 s)
+                PSP->>ACQ: MTI 0421 (aviso de reverso repetido)
+            end
+            PSP-->>PAY: 202 {status: REVERSAL_PENDING}
+            PAY->>EXC: Registra el caso para la conciliación del día
+            Note over EXC: Se resuelve en la conciliación de nivel 1 (diagrama 4)
+        end
+    end

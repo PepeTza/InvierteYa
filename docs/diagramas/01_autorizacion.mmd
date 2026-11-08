@@ -1,0 +1,52 @@
+%% InvierteYa · Sesión 2 · Diagrama 1: Autorización de un aporte (v2)
+%% Pasarela, adquirente, suiche y emisor se SIMULAN en el prototipo (servicios mock).
+%% v2: sin tutor en el rechazo; mensaje según código de respuesta (no se revela motivo de fraude).
+sequenceDiagram
+    autonumber
+    actor U as Usuario (María)
+    participant APP as App InvierteYa (React)
+    participant GW as API Gateway
+    participant BE as Backend InvierteYa (FastAPI)
+    participant DB as BD transaccional
+    participant PAY as Servicio de pagos
+    participant PSP as Pasarela aliada
+    participant ACQ as Banco adquirente
+    participant SW as Suiche
+    participant ISS as Banco emisor
+
+    U->>APP: Elige "Aportar $20"
+    APP->>PSP: Datos de tarjeta en formulario/SDK de la pasarela
+    Note over APP,PSP: El PAN nunca pasa por servidores de InvierteYa (PCI: SAQ A)
+    PSP-->>APP: token de tarjeta
+    APP->>GW: POST /v1/aportes {monto, token, Idempotency-Key} (TLS 1.2+, JWT)
+    GW->>BE: Solicitud autenticada y con límite de peticiones
+    BE->>BE: Valida KYC, perfil asignado, monto >= $5 y límites
+    BE->>DB: Crea aporte en estado PENDIENTE
+    BE->>PAY: autorizar(aporte_id, token, monto)
+    PAY->>PSP: POST /authorizations {token, amount, currency, reference}
+    PSP->>ACQ: ISO 8583 MTI 0100 (campos 2, 3, 4, 7, 11, 41, 42, 49)
+    ACQ->>SW: MTI 0100
+    SW->>ISS: MTI 0100
+    ISS->>ISS: Verifica fondos, estado de la tarjeta y antifraude
+
+    alt Aprobada
+        ISS-->>SW: MTI 0110 (campo 39 = 00, campo 38 = cód. autorización)
+        SW-->>ACQ: MTI 0110
+        ACQ-->>PSP: MTI 0110
+        PSP-->>PAY: 201 {status: AUTHORIZED, auth_code, rrn}
+        PAY->>DB: Aporte -> AUTORIZADO
+        PAY-->>BE: Autorización aprobada
+        Note over BE,PAY: Continúa con la captura (diagrama 2)
+    else Rechazada (05 no honrar, 51 fondos insuficientes, otros)
+        ISS-->>SW: MTI 0110 (campo 39 distinto de 00)
+        SW-->>ACQ: MTI 0110
+        ACQ-->>PSP: MTI 0110
+        PSP-->>PAY: 402 {status: DECLINED, response_code}
+        PAY->>DB: Aporte -> RECHAZADO
+        BE-->>APP: Mensaje según código de respuesta
+        Note over BE,APP: Rechazos por sospecha de fraude: mensaje genérico, sin revelar el motivo
+        APP-->>U: "Tu banco no aprobó el pago" + reintentar u otra tarjeta
+    else Sin respuesta en 30 s (timeout)
+        PAY->>DB: Aporte -> EN_REVERSO
+        Note over PAY,PSP: Se inicia el reverso automático (diagrama 3)
+    end

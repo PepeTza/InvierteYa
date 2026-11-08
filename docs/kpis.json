@@ -1,0 +1,30 @@
+{
+  "simulacion": {
+    "transacciones": 1000,
+    "workers": 20,
+    "semilla": 7,
+    "nota": "Latencias de pasarela/red SIMULADAS (lognormal, media 350 ms; timeout 30 s)"
+  },
+  "kpis": {
+    "tasa_aprobacion_pct": 88.0,
+    "latencia_p50_ms": 698.8,
+    "latencia_p95_ms": 1259.5,
+    "latencia_p99_ms": 30288.8,
+    "tps": 13.8,
+    "tasa_reversos_pct": 2.2
+  },
+  "estados_finales": {
+    "ASIGNADO": 874,
+    "RECHAZADO": 104,
+    "REVERSADO": 20,
+    "REVERSO_PENDIENTE": 2
+  },
+  "conciliacion": {
+    "conciliado": false,
+    "excepciones": 2,
+    "tipos": [
+      "REVERSO_PENDIENTE"
+    ]
+  },
+  "latencia_media_ms": 1199.5
+}

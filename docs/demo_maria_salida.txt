@@ -1,0 +1,75 @@
+
+======================================================================
+1. Registro, KYC simulado y cuestionario
+======================================================================
+Perfil: CONSERVADOR (6.0/19) — Te asignamos el perfil Conservador sobre todo porque prefieres proteger tu dinero y venderías ante una caída del 20%.
+Tutor: «¿Qué significa ser Conservador?»
+
+======================================================================
+2. Contrato de adhesión al fideicomiso
+======================================================================
+Adhesión FIRMADA · Tutor: «¿Dónde queda mi dinero?» Tu dinero no queda en InvierteYa: entra a un fideicomiso administrado por un banco regulado. Ese patrimonio está separado del banco y de nosotros.
+La pasarela tokenizó la tarjeta: tok_ffb73b30bdfb364f (InvierteYa nunca ve el PAN)
+
+======================================================================
+3. Aporte de $20 aprobado (diagramas 1 y 2)
+======================================================================
+Aporte apt_78470b3834  $20.00  ->  ASIGNADO
+   · PENDIENTE          Validaciones de KYC, adhesión, perfil y monto superadas
+   · AUTORIZADO         Código de autorización 872246
+   · CAPTURADO          RRN 223005401501
+   · ASIGNADO           16.0000 unidades del portafolio Conservador
+   ISO 8583 (tramo pasarela-suiche, SIMULADO):
+     MTI 0100  {'2': '4111********1111', '3': '000000', '4': '000000002000', '7': '1107234241', '11': '000001', '41': 'INVYA001', '42': 'INVIERTEYA00001', '49': '840'}
+     MTI 0110  {'7': '1107234241', '11': '000001', '37': '223005401501', '38': '872246', '39': '00'}
+     MTI 0220  {'4': '000000002000', '7': '1107234241', '11': '000001', '37': '223005401501', '38': '872246'}
+     MTI 0230  {'7': '1107234241', '11': '000001', '39': '00'}
+   Mensaje al usuario: ¡Listo! Recibiste 16.0000 unidades de participación.
+   Tutor: «¿Qué es una unidad de participación?» Es tu parte del fideicomiso. Si aportaste $20 y cada unidad vale $1,25, recibiste 16 unidades. Si las inversiones suben, el valor de cada unidad sube y tu saldo también.
+
+======================================================================
+4. Pago rechazado por saldo insuficiente (código 51)
+======================================================================
+Aporte apt_8aa62a55ef  $30.00  ->  RECHAZADO
+   · PENDIENTE          Validaciones de KYC, adhesión, perfil y monto superadas
+   · RECHAZADO          Código de respuesta 51
+   ISO 8583 (tramo pasarela-suiche, SIMULADO):
+     MTI 0100  {'2': '4111********1111', '3': '000000', '4': '000000003000', '7': '1107234241', '11': '000002', '41': 'INVYA001', '42': 'INVIERTEYA00001', '49': '840'}
+     MTI 0110  {'7': '1107234241', '11': '000002', '37': '336625619290', '39': '51'}
+   Mensaje al usuario: Tu banco no aprobó el pago, posiblemente por saldo insuficiente.
+
+======================================================================
+5. Timeout del emisor -> reverso automático (diagrama 3)
+======================================================================
+Aporte apt_1d3fd8bd9c  $10.00  ->  REVERSADO
+   · PENDIENTE          Validaciones de KYC, adhesión, perfil y monto superadas
+   · EN_REVERSO         Sin respuesta del emisor en 30 s
+   · REVERSADO          Reverso confirmado (0410)
+   ISO 8583 (tramo pasarela-suiche, SIMULADO):
+     MTI 0100  {'2': '4111********1111', '3': '000000', '4': '000000001000', '7': '1107234241', '11': '000003', '41': 'INVYA001', '42': 'INVIERTEYA00001', '49': '840'}
+     MTI 0400  {'4': '000000001000', '7': '1107234241', '11': '000004', '90': '010000000311072342410000000000000000000000'}
+     MTI 0410  {'7': '1107234241', '11': '000004', '39': '00'}
+   Mensaje al usuario: No se realizó el cobro. Si ves una retención, tu banco la liberará.
+
+======================================================================
+6. María toca dos veces 'Aportar' (idempotencia)
+======================================================================
+Primer intento: ASIGNADO · Segundo: duplicado=True, mismo aporte=True
+
+======================================================================
+7. Portafolio de María
+======================================================================
+28.0000 unidades x $1.25 = $35.00  {'renta_fija': 70, 'fondos': 20, 'acciones': 10}
+Tutor: «¿Qué es la renta fija?»
+
+======================================================================
+8. Cierre del día: conciliación en 3 niveles y batch (diagrama 4)
+======================================================================
+Nivel 1: cuadra
+Nivel 2: cuadra
+Nivel 3: cuadra
+Propuesta de órdenes (InvierteYa propone, el fiduciario aprueba):
+   CONSERVADOR  renta_fija  $24.50
+   CONSERVADOR  fondos      $7.00
+   CONSERVADOR  acciones    $3.50
+Batch: {'aprobada': True, 'ordenes': 3, 'nota': 'Títulos registrados en la CVV a nombre del fideicomiso (simulado).'}

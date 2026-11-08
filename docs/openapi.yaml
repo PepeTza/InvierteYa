@@ -1,0 +1,914 @@
+openapi: 3.1.0
+info:
+  title: InvierteYa API (prototipo · Sesión 2)
+  version: 0.2.0
+  description: Inversión fraccionada desde $5 a través de un fideicomiso. Pasarela,
+    adquirente, suiche, emisor, banco fiduciario, casa de bolsa y CVV están SIMULADOS.
+    Solo datos sintéticos.
+servers:
+- url: http://127.0.0.1:8000
+  description: Local
+tags:
+- name: Usuarios
+- name: Perfil y tutor
+- name: Aportes
+- name: Operaciones
+- name: Pasarela simulada
+paths:
+  /v1/usuarios:
+    post:
+      tags:
+      - Usuarios
+      summary: Registrar usuario (datos sintéticos)
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistroIn'
+      responses:
+        '201':
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioOut'
+  /v1/usuarios/{usuario_id}/kyc:
+    post:
+      tags:
+      - Usuarios
+      summary: KYC simulado (se comparte con el banco fiduciario)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: KYC aprobado
+        '404':
+          description: No encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Regla de negocio no cumplida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/usuarios/{usuario_id}/adhesion:
+    post:
+      tags:
+      - Usuarios
+      summary: Firmar contrato de adhesión al fideicomiso
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdhesionIn'
+      responses:
+        '200':
+          description: Adhesión firmada
+        '404':
+          description: No encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Regla de negocio no cumplida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/usuarios/{usuario_id}/perfil:
+    post:
+      tags:
+      - Perfil y tutor
+      summary: Cuestionario de 10 preguntas -> perfil + explicación + lección
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CuestionarioIn'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilOut'
+        '404':
+          description: No encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Regla de negocio no cumplida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/lecciones:
+    get:
+      tags:
+      - Perfil y tutor
+      summary: 'Tutor predefinido: lección por paso, perfil y nivel'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: paso
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - CUESTIONARIO_COMPLETO
+          - ANTES_PRIMER_APORTE
+          - UNIDADES_ASIGNADAS
+          - VER_PORTAFOLIO
+          - ANTES_RESCATE
+      - name: perfil
+        in: query
+        schema:
+          type: string
+          enum:
+          - CONSERVADOR
+          - MODERADO
+          - AGRESIVO
+      - name: conocimiento
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 5
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leccion'
+  /v1/aportes:
+    post:
+      tags:
+      - Aportes
+      summary: 'Crear aporte: autorización -> captura -> asignación de unidades (reverso
+        si falla)'
+      description: 'Si se repite la misma Idempotency-Key se devuelve el resultado
+        original (`duplicado: true`) y no se cobra dos veces.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AporteIn'
+      responses:
+        '201':
+          description: Aporte procesado (ver campo estado)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AporteOut'
+        '404':
+          description: No encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Regla de negocio no cumplida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/aportes/{aporte_id}:
+    get:
+      tags:
+      - Aportes
+      summary: Consultar un aporte
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: aporte_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AporteOut'
+        '404':
+          description: No encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/usuarios/{usuario_id}/portafolio:
+    get:
+      tags:
+      - Aportes
+      summary: Unidades, valor de la unidad y saldo
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortafolioOut'
+        '404':
+          description: No encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Regla de negocio no cumplida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/operaciones/cierre:
+    post:
+      tags:
+      - Operaciones
+      summary: 'Job T+1: liquidación, conciliación en 3 niveles y propuesta de órdenes
+        por lote'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: fecha
+        in: query
+        schema:
+          type: string
+          format: date
+      - name: inyectar_descuadre
+        in: query
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Resultado de la conciliación y del batch
+  /pasarela/v1/tokens:
+    post:
+      tags:
+      - Pasarela simulada
+      summary: Tokenizar tarjeta de PRUEBA (el PAN no llega a InvierteYa)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenIn'
+      responses:
+        '201':
+          description: Token creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenOut'
+  /pasarela/v1/authorizations:
+    post:
+      tags:
+      - Pasarela simulada
+      summary: Autorización (ISO 8583 0100/0110)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutorizacionIn'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaPasarela'
+  /pasarela/v1/captures:
+    post:
+      tags:
+      - Pasarela simulada
+      summary: Captura (ISO 8583 0220/0230)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CapturaIn'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaPasarela'
+  /pasarela/v1/reversals:
+    post:
+      tags:
+      - Pasarela simulada
+      summary: Reverso (ISO 8583 0400/0410, 0421 si no hay respuesta)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReversoIn'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaPasarela'
+  /pasarela/v1/refunds:
+    post:
+      tags:
+      - Pasarela simulada
+      summary: Devolución de un cobro capturado
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DevolucionIn'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaPasarela'
+  /pasarela/v1/settlements/{fecha}:
+    get:
+      tags:
+      - Pasarela simulada
+      summary: Archivo de liquidación diario
+      parameters:
+      - name: fecha
+        in: path
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        '200':
+          description: Transacciones, comisiones y totales
+components:
+  schemas:
+    AdhesionIn:
+      properties:
+        acepta:
+          description: El usuario acepta el contrato de adhesión al fideicomiso
+          title: Acepta
+          type: boolean
+      required:
+      - acepta
+      title: AdhesionIn
+      type: object
+    AporteIn:
+      properties:
+        usuario_id:
+          title: Usuario Id
+          type: string
+        monto:
+          description: Monto en USD (mínimo $5)
+          examples:
+          - 20
+          maximum: 1000
+          minimum: 5
+          title: Monto
+          type: number
+        token_tarjeta:
+          description: Token emitido por la pasarela. InvierteYa nunca recibe el PAN.
+          title: Token Tarjeta
+          type: string
+      required:
+      - usuario_id
+      - monto
+      - token_tarjeta
+      title: AporteIn
+      type: object
+    AporteOut:
+      properties:
+        id:
+          title: Id
+          type: string
+        usuario_id:
+          title: Usuario Id
+          type: string
+        portafolio:
+          title: Portafolio
+          type: string
+        monto:
+          title: Monto
+          type: string
+        estado:
+          enum:
+          - PENDIENTE
+          - AUTORIZADO
+          - CAPTURADO
+          - ASIGNADO
+          - RECHAZADO
+          - EN_REVERSO
+          - REVERSADO
+          - REVERSO_PENDIENTE
+          title: Estado
+          type: string
+        unidades:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unidades
+        mensaje:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Mensaje
+        leccion:
+          anyOf:
+          - $ref: '#/components/schemas/Leccion'
+          - type: 'null'
+        rrn:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Rrn
+        auth_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Auth Code
+        eventos:
+          items:
+            $ref: '#/components/schemas/EventoAporte'
+          title: Eventos
+          type: array
+        iso8583:
+          description: Mensajes ISO 8583 SIMULADOS del tramo pasarela-suiche (demo)
+          items:
+            additionalProperties: true
+            type: object
+          title: Iso8583
+          type: array
+        latencia_total_ms:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Latencia Total Ms
+        duplicado:
+          title: Duplicado
+          type: boolean
+      required:
+      - id
+      - usuario_id
+      - portafolio
+      - monto
+      - estado
+      - unidades
+      - mensaje
+      - leccion
+      - rrn
+      - auth_code
+      - eventos
+      - iso8583
+      - duplicado
+      title: AporteOut
+      type: object
+    AutorizacionIn:
+      properties:
+        token:
+          title: Token
+          type: string
+        amount:
+          description: Monto en centavos
+          exclusiveMinimum: 0
+          title: Amount
+          type: integer
+        currency:
+          const: USD
+          default: USD
+          title: Currency
+          type: string
+        reference:
+          title: Reference
+          type: string
+      required:
+      - token
+      - amount
+      - reference
+      title: AutorizacionIn
+      type: object
+    CapturaIn:
+      properties:
+        authorization_id:
+          title: Authorization Id
+          type: string
+        amount:
+          exclusiveMinimum: 0
+          title: Amount
+          type: integer
+      required:
+      - authorization_id
+      - amount
+      title: CapturaIn
+      type: object
+    CuestionarioIn:
+      properties:
+        edad:
+          examples:
+          - 24
+          maximum: 100
+          minimum: 18
+          title: Edad
+          type: integer
+        ingreso_rango:
+          examples:
+          - 2
+          maximum: 5
+          minimum: 1
+          title: Ingreso Rango
+          type: integer
+        pct_invertible:
+          examples:
+          - 15
+          maximum: 100
+          minimum: 0
+          title: Pct Invertible
+          type: number
+        horizonte_anios:
+          examples:
+          - 2
+          minimum: 0
+          title: Horizonte Anios
+          type: number
+        objetivo:
+          enum:
+          - proteger
+          - crecer
+          - ganar_rapido
+          title: Objetivo
+          type: string
+        reaccion_caida_20:
+          enum:
+          - vender_todo
+          - esperar
+          - comprar_mas
+          title: Reaccion Caida 20
+          type: string
+        experiencia_previa:
+          title: Experiencia Previa
+          type: boolean
+        fondo_emergencia:
+          title: Fondo Emergencia
+          type: boolean
+        dependientes:
+          minimum: 0
+          title: Dependientes
+          type: integer
+        conocimiento:
+          maximum: 5
+          minimum: 1
+          title: Conocimiento
+          type: integer
+      required:
+      - edad
+      - ingreso_rango
+      - pct_invertible
+      - horizonte_anios
+      - objetivo
+      - reaccion_caida_20
+      - experiencia_previa
+      - fondo_emergencia
+      - dependientes
+      - conocimiento
+      title: CuestionarioIn
+      type: object
+    DevolucionIn:
+      properties:
+        authorization_id:
+          title: Authorization Id
+          type: string
+      required:
+      - authorization_id
+      title: DevolucionIn
+      type: object
+    Error:
+      properties:
+        codigo:
+          title: Codigo
+          type: string
+        mensaje:
+          title: Mensaje
+          type: string
+      required:
+      - codigo
+      - mensaje
+      title: Error
+      type: object
+    EventoAporte:
+      properties:
+        estado:
+          title: Estado
+          type: string
+        detalle:
+          title: Detalle
+          type: string
+      required:
+      - estado
+      - detalle
+      title: EventoAporte
+      type: object
+    Leccion:
+      properties:
+        id:
+          title: Id
+          type: string
+        paso:
+          title: Paso
+          type: string
+        perfil:
+          title: Perfil
+          type: string
+        nivel:
+          title: Nivel
+          type: string
+        titulo:
+          title: Titulo
+          type: string
+        texto:
+          title: Texto
+          type: string
+      required:
+      - id
+      - paso
+      - perfil
+      - nivel
+      - titulo
+      - texto
+      title: Leccion
+      type: object
+    PerfilOut:
+      properties:
+        perfil:
+          enum:
+          - CONSERVADOR
+          - MODERADO
+          - AGRESIVO
+          title: Perfil
+          type: string
+        puntaje:
+          title: Puntaje
+          type: number
+        puntaje_maximo:
+          title: Puntaje Maximo
+          type: integer
+        explicacion:
+          title: Explicacion
+          type: string
+        avisos:
+          items:
+            type: string
+          title: Avisos
+          type: array
+        leccion:
+          anyOf:
+          - $ref: '#/components/schemas/Leccion'
+          - type: 'null'
+        motor:
+          title: Motor
+          type: string
+      required:
+      - perfil
+      - puntaje
+      - puntaje_maximo
+      - explicacion
+      - avisos
+      - leccion
+      - motor
+      title: PerfilOut
+      type: object
+    PortafolioOut:
+      properties:
+        usuario_id:
+          title: Usuario Id
+          type: string
+        portafolio:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Portafolio
+        unidades:
+          title: Unidades
+          type: string
+        valor_unidad:
+          title: Valor Unidad
+          type: string
+        saldo:
+          title: Saldo
+          type: string
+        composicion:
+          additionalProperties:
+            type: integer
+          title: Composicion
+          type: object
+        aportes:
+          title: Aportes
+          type: integer
+        leccion:
+          anyOf:
+          - $ref: '#/components/schemas/Leccion'
+          - type: 'null'
+      required:
+      - usuario_id
+      - portafolio
+      - unidades
+      - valor_unidad
+      - saldo
+      - composicion
+      - aportes
+      - leccion
+      title: PortafolioOut
+      type: object
+    RegistroIn:
+      properties:
+        nombre:
+          examples:
+          - María Pérez (dato sintético)
+          title: Nombre
+          type: string
+        email:
+          examples:
+          - maria@example.com
+          title: Email
+          type: string
+      required:
+      - nombre
+      - email
+      title: RegistroIn
+      type: object
+    RespuestaPasarela:
+      properties:
+        status:
+          title: Status
+          type: string
+        response_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Response Code
+        authorization_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization Id
+        auth_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Auth Code
+        rrn:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Rrn
+        latencia_ms:
+          title: Latencia Ms
+          type: number
+        iso:
+          items:
+            additionalProperties: true
+            type: object
+          title: Iso
+          type: array
+      required:
+      - status
+      - response_code
+      - authorization_id
+      - auth_code
+      - rrn
+      - latencia_ms
+      - iso
+      title: RespuestaPasarela
+      type: object
+    ReversoIn:
+      properties:
+        original_reference:
+          description: authorization_id de la transacción original
+          title: Original Reference
+          type: string
+        reason:
+          enum:
+          - TIMEOUT
+          - FALLA_CAPTURA
+          - DUPLICADO
+          - OTRO
+          title: Reason
+          type: string
+      required:
+      - original_reference
+      - reason
+      title: ReversoIn
+      type: object
+    TokenIn:
+      properties:
+        pan:
+          description: SOLO números de tarjeta de PRUEBA
+          examples:
+          - '4111111111111111'
+          title: Pan
+          type: string
+      required:
+      - pan
+      title: TokenIn
+      type: object
+    TokenOut:
+      properties:
+        token:
+          title: Token
+          type: string
+      required:
+      - token
+      title: TokenOut
+      type: object
+    UsuarioOut:
+      properties:
+        usuario_id:
+          title: Usuario Id
+          type: string
+        nombre:
+          title: Nombre
+          type: string
+        kyc_aprobado:
+          title: Kyc Aprobado
+          type: boolean
+        adhesion_firmada:
+          title: Adhesion Firmada
+          type: boolean
+        perfil:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Perfil
+      required:
+      - usuario_id
+      - nombre
+      - kyc_aprobado
+      - adhesion_firmada
+      - perfil
+      title: UsuarioOut
+      type: object
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'Simulado: usar `demo-token`. En producción, OAuth2/JWT en el API
+        Gateway.'

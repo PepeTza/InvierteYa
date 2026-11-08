@@ -1,0 +1,65 @@
+%% InvierteYa · Sesión 2 · Diagrama 4: Conciliación diaria en tres niveles (T+1)
+%% Pasarela, adquirente, banco fiduciario, casa de bolsa y CVV se SIMULAN en el prototipo (archivos mock).
+sequenceDiagram
+    autonumber
+    participant CON as Servicio de conciliación (job T+1, 6:00 am)
+    participant DB as BD transaccional
+    participant PSP as Pasarela aliada
+    participant ACQ as Banco adquirente
+    participant FID as Banco fiduciario (cuenta del fideicomiso)
+    participant CB as Casa de bolsa
+    participant CVV as CVV
+    participant EXC as Cola de excepciones
+    actor OPS as Analista de operaciones
+
+    Note over PSP,ACQ: Cierre previo: la pasarela concilia su lote con el adquirente (ISO 8583 MTI 0500/0510)
+
+    rect rgb(235, 245, 255)
+    Note over CON,PSP: Nivel 1: pagos vs. archivo de liquidación
+    CON->>PSP: GET /settlements/{fecha}
+    PSP-->>CON: Archivo: capturas, reversos y comisiones (RRN, cód. autorización, monto)
+    CON->>DB: Aportes del día (CAPTURADO, REVERSADO, REVERSAL_PENDING)
+    CON->>CON: Cruza por RRN + cód. autorización + monto
+    opt Hay diferencias
+        CON->>EXC: Capturado en BD y ausente en el archivo / cobro en el archivo sin aporte / reverso pendiente
+    end
+    end
+
+    rect rgb(235, 255, 240)
+    Note over CON,FID: Nivel 2: aportes capturados vs. cuenta del fideicomiso
+    CON->>FID: GET estado de cuenta del fideicomiso (fecha)
+    FID-->>CON: Abono neto del adquirente
+    CON->>CON: Compara: suma de capturas - comisión = abono neto
+    opt No cuadra
+        CON->>EXC: Diferencia de liquidación
+    end
+    end
+
+    rect rgb(255, 248, 235)
+    Note over CON,CVV: Nivel 3: unidades asignadas vs. posiciones custodiadas
+    CON->>CB: Posiciones del fideicomiso (fecha)
+    CB->>CVV: Consulta de custodia
+    CVV-->>CB: Títulos registrados a nombre del fideicomiso
+    CB-->>CON: Estado de posiciones valorizado
+    CON->>DB: Unidades por portafolio y valor de la unidad
+    CON->>CON: Compara por portafolio: unidades x valor = posiciones valorizadas + efectivo
+    opt No cuadra
+        CON->>EXC: Diferencia de custodia
+    end
+    end
+
+    alt Los tres niveles cuadran
+        CON->>DB: Día -> CONCILIADO
+        CON->>FID: Reporte diario de conciliación
+    else Hay excepciones
+        EXC->>OPS: Casos abiertos priorizados por monto
+        OPS->>OPS: Investiga cada caso
+        alt Cobro sin aporte (huérfano)
+            OPS->>PSP: Solicita devolución al usuario (POST /refunds)
+        else Capturado en BD sin liquidación
+            OPS->>PSP: Reclamo a la pasarela; las unidades quedan en revisión
+        else Diferencia de liquidación o de custodia
+            OPS->>FID: Ajuste con doble aprobación (fiduciario + InvierteYa)
+        end
+        OPS->>DB: Cierra la excepción con evidencia (bitácora de auditoría)
+    end
