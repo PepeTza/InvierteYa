@@ -174,8 +174,8 @@ asignación de unidades, consulta del portafolio y antes de un rescate.
 - **La clase Agresivo es frágil** (10% de los datos, F1 de 0,80 a 0,86 según la semilla).
 - **No detecta respuestas incoherentes o apresuradas** (riesgo 3 de la ficha). Las preguntas de control
   quedan para la Sesión 3.
-- **Versión de scikit-learn:** el modelo se guardó con la versión indicada en `metricas.json`. Si el
-  equipo usa otra, basta con correr `python ia/entrenar.py` para regenerarlo.
+- **Versión de scikit-learn:** el modelo se guardó con la versión indicada en `metricas.json`; con otra
+  versión se regenera con `python ia/entrenar.py`.
 
 ## 10. Cómo reproducirlo
 

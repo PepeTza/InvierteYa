@@ -223,6 +223,12 @@ Se presentan en una página o lámina tipo dashboard.
   - **PDF listos para el aula virtual** (en `docs/entregables/`): `S2_EquipoD_Diagramas.pdf`, `S2_EquipoD_API_ISO8583.pdf`, `S2_EquipoD_KPIs.pdf`, `S2_EquipoD_BaselineIA.pdf` y `S2_EquipoD_Bitacora.pdf`. Fuentes Markdown: `docs/DIAGRAMAS.md`, `docs/API_ISO8583.md`, `docs/KPIS.md`, `docs/ia/`.
   - **Siguen pendientes:** B (front-end), C (plan de certificación), E (capturas de Swagger), F (láminas y guion), SAST/SCA en la bitácora y actualizar la copia del diagrama 3 en Lucid (opcional).
 
+- **Domingo 8-nov, 22:10. Limpieza de los entregables:** se quitaron de los PDF las notas internas ("pendiente", "confirmar con el docente", enlaces de Lucid). Lo que sigue abierto se registra **solo aquí**:
+  - SAST/SCA (`bandit -r app ia scripts -ll`, `pip-audit -r requirements.txt`): en la bitácora quedó como parte del pipeline CI/CD de la Sesión 3; si se corre antes, anotar el resultado real.
+  - Fideicomiso frente a la Ley de Fideicomisos y SUDEBAN, y SAQ A frente a la guía de PCI-DSS 4.0: en la bitácora quedaron como parte de la matriz de cumplimiento de la Sesión 4. ⚠️ Preguntar al profesor si el fiduciario es un banco o la casa de bolsa, y la viabilidad del fideicomiso colectivo con adhesión digital.
+  - Moneda en bolívares (VES 928 frente a VED 926): definir con la pasarela en la fase 2.
+  - La copia de Lucid del diagrama 3 no tiene la corrección 0420/0421 (el PNG del repositorio sí).
+
 ### Cómo retomar
 1. Clonar el repositorio y seguir el README (Python **3.13**, entorno virtual, `pip install -r requirements.txt`, `python -m pytest`).
 2. En una conversación nueva con Claude, subir: **este archivo**, el documento de la Sesión 1 y el PDF de instrucciones del profesor. Pedir: *"Lee el contexto y continuemos la Sesión 2 desde 'Lo que falta'"*.

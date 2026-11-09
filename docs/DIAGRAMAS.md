@@ -62,12 +62,3 @@ pasarela o ajuste con doble aprobación.
 
 ![Diagrama 4: Conciliación](diagramas/04_conciliacion.png)
 
-<div class="salto"></div>
-
-## Copias editables (Lucidchart)
-
-- Diagrama 1: https://lucid.app/lucidchart/d5584416-555a-4f63-a30f-2d5be0b29c92/edit
-- Diagrama 2: https://lucid.app/lucidchart/d0c03ba5-e02a-4ec5-bcee-20dff6e1e66a/edit
-- Diagrama 3: https://lucid.app/lucidchart/95e4de31-5803-4a18-8229-d7001e1f02d3/edit — **desactualizado:**
-  el PNG de este PDF ya incluye la corrección 0420/0421 del 8-nov; la copia de Lucid no.
-- Diagrama 4: https://lucid.app/lucidchart/4de3b48d-be8a-4b4a-b981-7ac12f9a4a7c/edit
