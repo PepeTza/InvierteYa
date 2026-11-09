@@ -92,7 +92,9 @@ def test_cp07_reverso_sin_respuesta_va_a_excepciones(entorno):
     s.pasarela.forzar("TIMEOUT", "REVERSO_SIN_RESPUESTA")
     a = s.crear_aporte(u.id, 2000, t, "k7")
     assert a["estado"] == "REVERSO_PENDIENTE"
-    assert [m["mti"] for m in a["iso8583"]].count("0421") == 3
+    mtis = [m["mti"] for m in a["iso8583"]]
+    assert mtis.count("0420") == 1 and mtis.count("0421") == 3   # aviso + 3 repeticiones
+    assert mtis.index("0420") < mtis.index("0421")
     assert s.excepciones and s.excepciones[0]["aporte_id"] == a["id"]
 
 

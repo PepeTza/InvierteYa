@@ -45,6 +45,11 @@ export interface ResultadoPerfil {
   avisos: string[]
   leccion: Leccion | null
   motor: string
+  // Modelo baseline (ia/): null si la API usa solo las reglas
+  perfil_reglas?: Perfil | null
+  probabilidad?: number | null
+  probabilidades?: Record<Perfil, number> | null
+  revision_humana?: boolean
 }
 
 export interface ResultadoAdhesion {

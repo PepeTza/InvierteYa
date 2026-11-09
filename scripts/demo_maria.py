@@ -36,6 +36,11 @@ p = s.evaluar_perfil(maria.id, Cuestionario(
     reaccion_caida_20="vender_todo", experiencia_previa=False, fondo_emergencia=False,
     dependientes=0, conocimiento=2))
 print(f"Perfil: {p['perfil']} ({p['puntaje']}/{p['puntaje_maximo']}) — {p['explicacion']}")
+if p["probabilidad"] is not None:
+    print(f"Motor: {p['motor']} · probabilidad {p['probabilidad']:.0%} · "
+          f"revisión humana: {'sí' if p['revision_humana'] else 'no'} · reglas dicen: {p['perfil_reglas']}")
+else:
+    print(f"Motor: {p['motor']}")
 print(f"Tutor: «{p['leccion']['titulo']}»")
 
 titulo("2. Contrato de adhesión al fideicomiso")

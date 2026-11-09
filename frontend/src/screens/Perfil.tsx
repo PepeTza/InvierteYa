@@ -1,7 +1,8 @@
 import { animate, motion, useMotionValue, useTransform } from 'motion/react'
-import { AlertTriangle, Cpu, TrendingDown, TrendingUp } from 'lucide-react'
+import { AlertTriangle, BrainCircuit, Cpu, TrendingDown, TrendingUp, UserCheck } from 'lucide-react'
 import { useEffect } from 'react'
 import { useApp } from '../estado'
+import type { Perfil as TPerfil } from '../lib/api'
 import { dinero, PORTAFOLIOS } from '../lib/datos'
 import { aparecer, BarraComposicion, Boton, Encabezado, Plantilla, TarjetaTutor } from '../components/ui'
 
@@ -45,6 +46,48 @@ function Medidor({ puntaje, maximo, color }: { puntaje: number; maximo: number; 
   )
 }
 
+const UMBRAL_REVISION = 0.6
+const pct = (v: number) => `${Math.round(v * 100)}%`
+
+/** Confianza del modelo de IA: probabilidad de cada perfil frente al umbral de revisión humana (60%). */
+function ConfianzaModelo({ probabilidades, asignado, revision }: {
+  probabilidades: Record<TPerfil, number>; asignado: TPerfil; revision: boolean
+}) {
+  const orden: TPerfil[] = ['CONSERVADOR', 'MODERADO', 'AGRESIVO']
+  return (
+    <div className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <p className="flex items-center gap-1.5 text-sm font-semibold"><BrainCircuit className="size-4 text-marca" /> Confianza del modelo</p>
+        <p className="cifra text-2xl font-extrabold">{pct(probabilidades[asignado] ?? 0)}</p>
+      </div>
+      <ul className="space-y-2">
+        {orden.map((k, i) => {
+          const v = probabilidades[k] ?? 0
+          return (
+            <li key={k} className="grid grid-cols-[88px_1fr_40px] items-center gap-2 text-xs" title={`${PORTAFOLIOS[k].nombre}: ${pct(v)}`}>
+              <span className={k === asignado ? 'font-bold' : 'text-suave'}>{PORTAFOLIOS[k].nombre}</span>
+              <span className="relative h-2.5 rounded-full bg-fondo">
+                <motion.span className="absolute inset-y-0 left-0 rounded-full"
+                  style={{ background: PORTAFOLIOS[k].color, opacity: k === asignado ? 1 : 0.45 }}
+                  initial={{ width: 0 }} animate={{ width: `${Math.max(v * 100, 1)}%` }}
+                  transition={{ delay: 0.3 + i * 0.1, duration: 0.6, ease: 'easeOut' }} />
+                <span className="absolute -inset-y-1 w-px bg-tinta/40" style={{ left: `${UMBRAL_REVISION * 100}%` }} />
+              </span>
+              <span className="cifra text-right font-semibold">{pct(v)}</span>
+            </li>
+          )
+        })}
+      </ul>
+      <p className="text-[11px] text-suave">La línea marca el 60%: por debajo, un asesor revisa el perfil.</p>
+      {revision && (
+        <p className="flex items-center gap-1.5 rounded-xl bg-conservador-suave px-3 py-2 text-xs font-semibold text-conservador">
+          <UserCheck className="size-4" /> Un asesor revisará tu perfil
+        </p>
+      )}
+    </div>
+  )
+}
+
 /** Por qué se asignó el perfil, en viñetas cortas. */
 function Factores({ suben, moderan, explicacion }: { suben: string[]; moderan: string[]; explicacion: string }) {
   if (!suben.length && !moderan.length) {
@@ -79,6 +122,7 @@ export default function Perfil() {
   const r = estado.perfil!
   const p = PORTAFOLIOS[r.perfil]
   const Icono = p.icono
+  const motor = r.probabilidades ? 'Modelo de IA · regresión logística · datos sintéticos' : 'Motor de reglas de idoneidad (sin modelo)'
 
   return (
     <Plantilla
@@ -102,10 +146,12 @@ export default function Perfil() {
             <motion.p {...aparecer(3)} className="text-sm font-medium text-suave">{p.lema}</motion.p>
           </div>
           <motion.div {...aparecer(3)}>
-            <Medidor puntaje={r.puntaje} maximo={r.puntaje_maximo} color={p.color} />
+            {r.probabilidades
+              ? <ConfianzaModelo probabilidades={r.probabilidades} asignado={r.perfil} revision={Boolean(r.revision_humana)} />
+              : <Medidor puntaje={r.puntaje} maximo={r.puntaje_maximo} color={p.color} />}
           </motion.div>
           <p className="hidden items-center justify-center gap-1.5 text-xs text-suave @3xl:flex">
-            <Cpu className="size-3.5" /> Motor de perfil v0 · reglas de idoneidad
+            <Cpu className="size-3.5" /> {motor}
           </p>
         </div>
 
@@ -130,7 +176,7 @@ export default function Perfil() {
           <TarjetaTutor leccion={r.leccion} retraso={0.6} />
 
           <p className="flex items-center justify-center gap-1.5 text-xs text-suave @3xl:hidden">
-            <Cpu className="size-3.5" /> Motor de perfil v0 · reglas de idoneidad
+            <Cpu className="size-3.5" /> {motor}
           </p>
         </div>
       </div>

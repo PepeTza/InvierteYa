@@ -181,7 +181,7 @@ def capturar(d: E.CapturaIn):
 
 @psp.post("/reversals", response_model=E.RespuestaPasarela)
 def reversar(d: E.ReversoIn):
-    """ISO 8583 0400/0410 con campo 90; 0421 si no hay respuesta."""
+    """ISO 8583 0400/0410 con campo 90; si no hay respuesta, aviso 0420 y repeticiones 0421."""
     return _resp(servicio.pasarela.reversar(d.original_reference, d.reason))
 
 

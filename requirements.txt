@@ -4,3 +4,8 @@ pydantic>=2.7
 pyyaml>=6.0
 matplotlib>=3.8
 pytest>=8.0
+# Baseline de IA (ia/)
+numpy>=2.1
+pandas>=2.2.3
+scikit-learn>=1.5.2
+joblib>=1.4

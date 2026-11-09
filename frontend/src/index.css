@@ -23,8 +23,8 @@
   --color-conservador-suave: #e8effd;
   --color-moderado: #c26a06;
   --color-moderado-suave: #fdf1e1;
-  --color-agresivo: #d13a5f;
-  --color-agresivo-suave: #fce8ed;
+  --color-agresivo: #b8338a;           /* validado con conservador/moderado (dataviz) */
+  --color-agresivo-suave: #f9e8f2;
 
   --color-exito: #12805c;
   --color-error: #c23b3b;

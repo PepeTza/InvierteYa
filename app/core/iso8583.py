@@ -5,14 +5,19 @@ InvierteYa nunca arma estos mensajes en producción: aquí los generamos
 solo para que el prototipo muestre qué ocurre en ese tramo de la cadena
 (sirve para la demo, los logs y la tabla de mapeo de las láminas).
 
-Campos usados (verificar contra el estándar antes de presentar):
-  2  PAN (enmascarado; el PAN real solo lo ve la pasarela)
-  3  Código de proceso      4  Monto (12 dígitos, en centavos)
-  7  Fecha/hora transmisión (MMDDhhmmss)
-  11 STAN (número de traza) 37 RRN (referencia de recuperación)
-  38 Código de autorización 39 Código de respuesta
-  41 Terminal               42 Comercio
-  49 Moneda (840 = USD)     90 Datos de la transacción original (reversos)
+Campos usados (verificados el 8-nov-2026; tabla y fuentes en docs/API_ISO8583.md):
+  2  PAN, n..19 (enmascarado; el PAN real solo lo ve la pasarela)
+  3  Código de proceso, n6       4  Monto de la transacción, n12 (en centavos)
+  7  Fecha/hora de transmisión, n10 (MMDDhhmmss)
+  11 STAN, n6                    37 RRN, an12
+  38 Código de autorización, an6 39 Código de respuesta, an2
+  41 Terminal, ans8              42 Comercio (card acceptor), ans15
+  49 Moneda, n3 (ISO 4217: 840 = USD)
+  76 Número de débitos, n10      88 Monto total de débitos, n16   (conciliación 0500)
+  90 Datos originales, n42 = MTI(4)+STAN(6)+fecha/hora(10)+adquirente(11)+reenviador(11)
+
+Reverso sin respuesta: 0400 sin 0410 -> aviso de reverso 0420 -> repeticiones 0421 hasta
+recibir 0430 (en el MTI, función 2 = aviso y origen 1 = repetición del adquirente).
 """
 from __future__ import annotations
 
@@ -25,7 +30,9 @@ MTI = {
     "COMPLETACION_RESP": "0230",
     "REVERSO": "0400",
     "REVERSO_RESP": "0410",
+    "REVERSO_AVISO": "0420",
     "REVERSO_AVISO_REPETIDO": "0421",
+    "REVERSO_AVISO_RESP": "0430",
     "RECONCILIACION": "0500",
     "RECONCILIACION_RESP": "0510",
 }
@@ -82,8 +89,10 @@ def datos_originales(mti_original: str, stan_original: str, momento_original: da
 
 
 def reverso(monto_centavos: int, stan: str, campo90: str, momento: datetime,
-            repetido: bool = False) -> dict:
-    mti = MTI["REVERSO_AVISO_REPETIDO"] if repetido else MTI["REVERSO"]
+            aviso: bool = False, repetido: bool = False) -> dict:
+    """0400 solicitud de reverso; 0420 aviso de reverso; 0421 repetición del aviso."""
+    mti = (MTI["REVERSO_AVISO_REPETIDO"] if repetido
+           else MTI["REVERSO_AVISO"] if aviso else MTI["REVERSO"])
     return mensaje(mti, momento, c4=_monto(monto_centavos), c11=stan, c90=campo90)
 
 
@@ -92,7 +101,9 @@ def respuesta_reverso(stan: str, codigo: str, momento: datetime) -> dict:
 
 
 def reconciliacion(cantidad: int, total_centavos: int, momento: datetime) -> dict:
-    # En la práctica 0500 lleva totales en campos 74-97; aquí lo resumimos.
+    """0500 conciliación del adquirente. Los aportes son DÉBITOS a la tarjeta del usuario:
+    campo 76 = número de débitos (n10) y campo 88 = monto total de débitos (n16).
+    En la práctica el 0500 lleva más totales (campos 74 a 97); aquí se resume."""
     return {"mti": MTI["RECONCILIACION"], "campos": {
-        "7": _fecha_transmision(momento), "74": str(cantidad).zfill(10),
+        "7": _fecha_transmision(momento), "76": str(cantidad).zfill(10),
         "88": str(total_centavos).zfill(16)}}

@@ -2,6 +2,7 @@
 %% Pasarela, adquirente, suiche y emisor se SIMULAN en el prototipo.
 %% Regla: solo se reversa ANTES de asignar unidades. Después de eso, cualquier devolución es un rescate.
 sequenceDiagram
+    title InvierteYa · Diagrama 3: Reverso (solo antes de asignar unidades, después es un rescate) · actores externos SIMULADOS
     autonumber
     actor U as Usuario (María)
     participant APP as App InvierteYa
@@ -38,8 +39,9 @@ sequenceDiagram
             BE-->>APP: "No se realizó el cobro"
             APP-->>U: Si ves una retención, tu banco la liberará
         else Sin respuesta al reverso
-            loop Hasta 3 reintentos (cada 60 s)
-                PSP->>ACQ: MTI 0421 (aviso de reverso repetido)
+            PSP->>ACQ: MTI 0420 (aviso de reverso, campo 90)
+            loop Sin 0430: hasta 3 repeticiones (cada 60 s)
+                PSP->>ACQ: MTI 0421 (repetición del aviso 0420)
             end
             PSP-->>PAY: 202 {status: REVERSAL_PENDING}
             PAY->>EXC: Registra el caso para la conciliación del día

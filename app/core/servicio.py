@@ -19,6 +19,9 @@ from decimal import Decimal
 from app.core import conciliacion, perfil as perfil_mod, tutor
 from app.core.fideicomiso import FideicomisoSimulado, calcular_unidades, a_dolares
 from app.core.pasarela_simulada import PasarelaSimulada, ConfigPasarela
+from ia import predictor
+
+ORDEN_RIESGO = ["CONSERVADOR", "MODERADO", "AGRESIVO"]
 
 MONTO_MINIMO = 500        # $5,00 en centavos
 MONTO_MAXIMO = 100_000    # $1.000 por aporte (límite supuesto, validar con cumplimiento)
@@ -57,6 +60,7 @@ class InvierteYa:
         self.idempotencia: dict[tuple[str, str], str] = {}   # (usuario, clave) -> aporte_id
         self.excepciones: list[dict] = []
         self.cierres: dict[str, dict] = {}                   # fecha -> resultado (el cierre corre una vez)
+        self.revisiones_perfil: list[dict] = []              # perfiles con probabilidad < 60% (asesor)
 
     # ------------------------------------------------------------------ usuarios
     def registrar(self, nombre: str, email: str) -> Usuario:
@@ -87,11 +91,34 @@ class InvierteYa:
                 "leccion": leccion}
 
     def evaluar_perfil(self, usuario_id: str, c: perfil_mod.Cuestionario) -> dict:
+        """Perfil con el modelo baseline (ia/) + reglas de seguridad + supervisión humana.
+        Si el modelo no está disponible, se usan las reglas de app/core/perfil.py."""
         u = self._usuario(usuario_id)
-        resultado = perfil_mod.evaluar(c)
+        resultado = perfil_mod.evaluar(c)          # reglas: puntaje, explicación y respaldo
+        resultado.update({"perfil_reglas": resultado["perfil"], "probabilidad": None,
+                          "probabilidades": None, "revision_humana": False,
+                          "motor": "reglas (modelo no disponible; correr python ia/entrenar.py)"})
+        pred = predictor.predecir(c)
+        if pred:
+            perfil = pred["perfil"]
+            avisos = list(pred["avisos"])
+            if pred["revision_humana"]:
+                # Probabilidad < 60%: un asesor revisa el caso. Mientras tanto se asigna el perfil
+                # MÁS CONSERVADOR entre el modelo y las reglas (nunca se arriesga de más).
+                perfil = min(perfil, resultado["perfil_reglas"], key=ORDEN_RIESGO.index)
+                avisos.append("Tu perfil será revisado por un asesor. Mientras tanto te asignamos "
+                              f"provisionalmente el portafolio {perfil.capitalize()}.")
+                self.revisiones_perfil.append({"usuario_id": u.id, "perfil_modelo": pred["perfil_modelo"],
+                                               "perfil_reglas": resultado["perfil_reglas"],
+                                               "perfil_provisional": perfil,
+                                               "probabilidad": pred["probabilidad"]})
+            resultado.update({"perfil": perfil, "avisos": avisos,
+                              "explicacion": perfil_mod.explicar(resultado["detalle_puntos"], perfil),
+                              "probabilidad": pred["probabilidad"],
+                              "probabilidades": pred["probabilidades"],
+                              "revision_humana": pred["revision_humana"], "motor": pred["motor"]})
         u.perfil, u.conocimiento = resultado["perfil"], c.conocimiento
         resultado["leccion"] = self._leccion(u, "CUESTIONARIO_COMPLETO")
-        resultado["motor"] = "reglas (el modelo baseline lo reemplaza; ver ia/)"
         return resultado
 
     def _leccion(self, u: Usuario, paso: str) -> dict | None:
@@ -180,7 +207,7 @@ class InvierteYa:
             evento("REVERSADO", "Reverso confirmado (0410)")
             aporte["mensaje"] = "No se realizó el cobro. Si ves una retención, tu banco la liberará."
         else:
-            evento("REVERSO_PENDIENTE", "Sin respuesta tras 3 reintentos (0421); va a conciliación")
+            evento("REVERSO_PENDIENTE", "Sin respuesta: aviso 0420 + 3 repeticiones 0421; va a conciliación")
             aporte["mensaje"] = "Estamos confirmando tu pago con el banco. No vuelvas a intentarlo aún."
             self.excepciones.append({"tipo": "REVERSO_PENDIENTE", "aporte_id": aporte["id"]})
 
