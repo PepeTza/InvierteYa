@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Front-end
+frontend/node_modules/
+# frontend/dist SÍ se versiona: así la app se ve con solo levantar uvicorn (sin Node).
+*.tsbuildinfo
+
+# Herramientas locales
+.gstack/

@@ -106,5 +106,9 @@ def evaluar(c: Cuestionario) -> dict:
         if hacia_cuidado:
             explicacion += f"; la moderan que {' y '.join(hacia_cuidado)}"
     explicacion += "."
+    # Versión en viñetas para la app: qué sube y qué modera la tolerancia al riesgo.
+    capitalizar = lambda t: t[:1].upper() + t[1:]
     return {"perfil": perfil, "puntaje": total, "puntaje_maximo": PUNTAJE_MAXIMO,
-            "explicacion": explicacion, "avisos": avisos, "detalle_puntos": puntos}
+            "explicacion": explicacion, "avisos": avisos, "detalle_puntos": puntos,
+            "factores_suben": [capitalizar(t) for t in hacia_riesgo],
+            "factores_moderan": [capitalizar(t) for t in hacia_cuidado]}

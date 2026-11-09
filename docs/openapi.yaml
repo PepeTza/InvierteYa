@@ -713,6 +713,18 @@ components:
         explicacion:
           title: Explicacion
           type: string
+        factores_suben:
+          description: Lo que sube la tolerancia al riesgo
+          items:
+            type: string
+          title: Factores Suben
+          type: array
+        factores_moderan:
+          description: Lo que la modera
+          items:
+            type: string
+          title: Factores Moderan
+          type: array
         avisos:
           items:
             type: string

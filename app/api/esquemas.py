@@ -56,6 +56,8 @@ class PerfilOut(BaseModel):
     puntaje: float
     puntaje_maximo: int
     explicacion: str
+    factores_suben: list[str] = Field(default_factory=list, description="Lo que sube la tolerancia al riesgo")
+    factores_moderan: list[str] = Field(default_factory=list, description="Lo que la modera")
     avisos: list[str]
     leccion: Leccion | None
     motor: str

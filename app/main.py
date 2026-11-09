@@ -11,9 +11,11 @@ Autenticación SIMULADA: enviar el encabezado  Authorization: Bearer demo-token
 """
 import os
 from datetime import date
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.api import esquemas as E
@@ -132,10 +134,21 @@ def cierre(fecha: date | None = None, inyectar_descuadre: bool = False):
 
 @v1.post("/demo/forzar-escenario", tags=["Operaciones"])
 def forzar(escenarios: list[str] = Query(..., description=(
-        "APROBADA, 51, 05, 59, TIMEOUT, FALLA_CAPTURA, REVERSO_SIN_RESPUESTA"))):
+        "APROBADA, 51, 05, 59, TIMEOUT, FALLA_CAPTURA, REVERSO_SIN_RESPUESTA")),
+           reemplazar: bool = Query(False, description="Vacía la cola antes de agregar los escenarios")):
     """Solo para la demo: fuerza el resultado de las próximas operaciones de la pasarela."""
+    if reemplazar:
+        servicio.pasarela.forzados.clear()
     servicio.pasarela.forzar(*escenarios)
     return {"forzados": servicio.pasarela.forzados}
+
+
+@v1.post("/demo/reiniciar", tags=["Operaciones"])
+def reiniciar_demo():
+    """Solo para la demo: borra usuarios, aportes, cierres y escenarios forzados (todo vive en memoria)."""
+    global servicio
+    servicio = InvierteYa()
+    return {"reiniciado": True}
 
 
 # ------------------------------------------------------------------ Pasarela simulada
@@ -188,6 +201,16 @@ app.include_router(v1)
 app.include_router(psp)
 
 
+# ------------------------------------------------------------------ Front-end (React)
+# `cd frontend && npm run build` genera frontend/dist; aquí se sirve en /app (un solo servidor para la demo).
+FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if FRONTEND.is_dir():
+    app.mount("/app", StaticFiles(directory=FRONTEND, html=True), name="frontend")
+
+
 @app.get("/", include_in_schema=False)
 def inicio():
-    return {"servicio": "InvierteYa API (prototipo)", "docs": "/docs", "openapi": "/openapi.json"}
+    if FRONTEND.is_dir():
+        return RedirectResponse("/app/")
+    return {"servicio": "InvierteYa API (prototipo)", "docs": "/docs", "openapi": "/openapi.json",
+            "app": "Compila el front-end: cd frontend && npm install && npm run build"}

@@ -1,4 +1,4 @@
-# InvierteYa · Prototipo backend (Sesión 2)
+# InvierteYa · Prototipo backend + front-end (Sesión 2)
 
 Inversión fraccionada desde **$5** a través de un **fideicomiso** administrado por un banco,
 con perfil de riesgo y **tutor didáctico**. Equipo D · Fintech con IA.
@@ -30,6 +30,43 @@ Con `POST /v1/demo/forzar-escenario` se fuerza el próximo resultado:
 
 Sin instalar nada, el archivo `docs/openapi.yaml` se puede ver pegándolo en https://editor.swagger.io
 
+## Front-end navegable (React)
+
+App móvil en React + TypeScript + Vite + Tailwind CSS (`frontend/`), conectada a la API real.
+Flujo: bienvenida → registro → KYC → cuestionario (10 preguntas) → perfil + lección del tutor →
+contrato de adhesión → tarjeta (formulario de la pasarela, solo devuelve un token) → aporte →
+autorización/captura/asignación en vivo → portafolio.
+
+La versión compilada (`frontend/dist`) está incluida en el repositorio, así que para **ver** la app
+basta con el backend:
+
+```bash
+uvicorn app.main:app                 # la app queda en http://127.0.0.1:8000/app
+```
+
+Para **modificar** el front-end se necesita Node.js 20 o superior:
+
+```bash
+cd frontend
+npm install
+npm run build                        # regenera frontend/dist: correrlo antes de cada commit que cambie el front
+```
+
+Para desarrollar con recarga en caliente: deja `uvicorn` corriendo y en otra terminal
+`cd frontend && npm run dev` → http://localhost:5173/app/ (reenvía `/v1` y `/pasarela` al puerto 8000).
+
+En pantallas anchas se ve la app, el mapa del flujo y el **panel de demo** (para el presentador):
+- **Vista Móvil / Web:** la misma app dentro de un teléfono o dentro de un navegador de escritorio
+  (landing de dos columnas, asistente de registro centrado y portafolio tipo dashboard).
+- Forzar el **próximo** resultado del pago (aprobada, 51, 05, 59, timeout, falla de captura).
+- Responder el cuestionario como María, abrir Swagger y ejecutar el cierre del día (conciliación en 3 niveles).
+- **Reiniciar recorrido:** borra el estado de la app y del servidor (`POST /v1/demo/reiniciar`).
+
+En el celular, el panel se abre con el botón flotante.
+
+> Antes del primer aporte de la demo, pulsa **Aprobada** en el panel: la pasarela simulada usa una
+> semilla fija y su primera transacción aleatoria sale rechazada (51).
+
 ## Estructura
 
 | Ruta | Qué hay |
@@ -41,7 +78,10 @@ Sin instalar nada, el archivo `docs/openapi.yaml` se puede ver pegándolo en htt
 | `app/core/conciliacion.py` | Conciliación en 3 niveles |
 | `app/core/perfil.py` | Perfil de riesgo por reglas (también etiqueta el dataset sintético del modelo baseline) |
 | `app/core/tutor.py` | Tutor con contenido predefinido (10 lecciones) y regla de selección |
-| `app/api/esquemas.py`, `app/main.py` | API REST con FastAPI (genera OpenAPI 3) |
+| `app/api/esquemas.py`, `app/main.py` | API REST con FastAPI (genera OpenAPI 3); sirve el front-end compilado en `/app` |
+| `frontend/src/screens/` | Pantallas del front-end (una por paso del flujo) |
+| `frontend/src/components/` | Componentes de UI, visor ISO 8583 y panel de demo |
+| `frontend/src/lib/api.ts` | Cliente de la API y de la pasarela simulada |
 | `tests/test_flujo.py` | Casos de prueba CP-01 a CP-15 |
 | `docs/` | `openapi.yaml`, `kpis.json`, `kpis_tablero.png`, salida de la demo |
 
