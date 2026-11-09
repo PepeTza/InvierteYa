@@ -37,8 +37,8 @@ Sin instalar nada, el archivo `docs/openapi.yaml` se puede ver pegándolo en htt
 | Ruta | Qué hay |
 |---|---|
 | `app/core/servicio.py` | Orquestación del flujo (diagramas 1 a 4): validaciones, autorización, captura, asignación de unidades, reverso, idempotencia y cierre del día |
-| `app/core/pasarela_simulada.py` | Pasarela aliada simulada: tokenización, latencias, rechazos (51, 05, 59), timeouts, reintentos 0421 y archivo de liquidación |
-| `app/core/iso8583.py` | Mensajes ISO 8583 simulados (0100/0110, 0220/0230, 0400/0410/0421, 0500) |
+| `app/core/pasarela_simulada.py` | Pasarela aliada simulada: tokenización, latencias, rechazos (51, 05, 59), timeouts, aviso de reverso 0420 con repeticiones 0421 y archivo de liquidación |
+| `app/core/iso8583.py` | Mensajes ISO 8583 simulados (0100/0110, 0220/0230, 0400/0410, 0420/0421, 0500); mapeo verificado en `docs/API_ISO8583.md` |
 | `app/core/fideicomiso.py` | Un fideicomiso con 3 portafolios, valor de unidad, propuesta de órdenes y aprobación del fiduciario |
 | `app/core/conciliacion.py` | Conciliación en 3 niveles |
 | `app/core/perfil.py` | Puntaje de idoneidad por reglas: etiqueta el dataset, explica el perfil y es el respaldo si no hay modelo |

@@ -69,7 +69,7 @@ Resuelve el riesgo abierto de la Sesión 1 sobre la figura legal de la inversió
 
 ### 3.3 Reverso
 - **Casos:** timeout sin respuesta del emisor; error al capturar o asignar después de una autorización aprobada; duplicado detectado por idempotencia.
-- InvierteYa llama `POST /reversals` y la pasarela envía **0400/0410** (o **0420** como aviso), con el **campo 90** (datos de la transacción original).
+- InvierteYa llama `POST /reversals` y la pasarela envía **0400/0410**, con el **campo 90** (datos de la transacción original). Si no hay respuesta: **aviso 0420** y repeticiones **0421** hasta recibir el 0430 (verificado el 8-nov).
 - Solo se reversa **antes de asignar las unidades**. Después de eso, cualquier devolución es un **rescate**.
 
 ### 3.4 Conciliación (diaria, en tres niveles)
@@ -86,7 +86,7 @@ Resuelve el riesgo abierto de la Sesión 1 sobre la figura legal de la inversió
 |---|---|---|
 | Autorización | `POST /authorizations` | MTI 0100 / 0110 |
 | Captura | `POST /captures` | 0220 (aviso de completación) o clearing por lote |
-| Reverso | `POST /reversals` | 0400 / 0410 (0420 aviso) |
+| Reverso | `POST /reversals` | 0400 / 0410 (sin respuesta: 0420 aviso → 0421 repetición → 0430) |
 | Cierre / conciliación | `GET /settlements/{fecha}` | 0500 / 0510 (reconciliación) |
 | PAN | (nunca lo tocamos: token) | Campo 2 |
 | Código de proceso | `operation` | Campo 3 |
@@ -97,10 +97,10 @@ Resuelve el riesgo abierto de la Sesión 1 sobre la figura legal de la inversió
 | Código de autorización | `auth_code` | Campo 38 |
 | Código de respuesta | `status` / `response_code` | Campo 39 (`00` aprobada, `05` no honrar, `51` fondos insuficientes, `91` emisor no disponible) |
 | Terminal / comercio | `merchant_id` | Campos 41 / 42 |
-| Moneda | `currency` | Campo 49 (USD = 840, VES = 928) |
+| Moneda | `currency` | Campo 49 (USD = 840; para bolívares hay dos códigos activos: VES = 928 y VED = 926) |
 | Datos originales (reverso) | `original_reference` | Campo 90 |
 
-> Verificar cada campo contra una fuente primaria (estándar ISO 8583:1987) antes de entregar y citarla.
+> ✅ **Verificado el 8-nov** contra fuentes citadas (tabla final en `docs/API_ISO8583.md`). La conciliación 0500 usa los campos **76** (número de débitos) y **88** (monto de débitos).
 
 ---
 
@@ -108,8 +108,8 @@ Resuelve el riesgo abierto de la Sesión 1 sobre la figura legal de la inversió
 
 | # | Entregable | Pts | Estado |
 |---|---|---|---|
-| 1 | Diagramas de secuencia: autorización, captura, reverso, conciliación (con el rol del suiche y cada actor) + mapeo ISO 8583 | 2,5 | ✅ diagramas / ⬜ tabla ISO final |
-| 2 | API OpenAPI 3 + backend simulado (FastAPI + pasarela/suiche mock) en Git | 2,5 | ✅ código en `invierteya.zip` / ✅ probado en Swagger con un aporte real y un cierre que concilia / ⬜ subir a Git |
+| 1 | Diagramas de secuencia: autorización, captura, reverso, conciliación (con el rol del suiche y cada actor) + mapeo ISO 8583 | 2,5 | ✅ diagramas (`S2_EquipoD_Diagramas.pdf`) / ✅ tabla ISO final (`S2_EquipoD_API_ISO8583.pdf`) |
+| 2 | API OpenAPI 3 + backend simulado (FastAPI + pasarela/suiche mock) en Git | 2,5 | ✅ código en GitHub (`PepeTza/InvierteYa`) / ✅ probado en Swagger con un aporte real y un cierre que concilia |
 | 3 | Front-end navegable (registro → cuestionario → perfil + lección del tutor → aporte → portafolio) | 1,5 | ⬜ |
 | 4 | Plan de certificación (fase 1 con pasarela / fase 2 independencia; actores; casos de prueba) | 1,5 | ⬜ |
 | 5 | Tablero de KPIs medidos en el prototipo: tasa de aprobación, latencia p95, TPS, tasa de reversos | 1 | ✅ `docs/kpis_tablero.png` |
@@ -182,7 +182,7 @@ Se presentan en una página o lámina tipo dashboard.
 - **Sábado 7-nov, 23:15. Diagramas 1 y 2 listos** (fuente Mermaid en `diagramas/*.mmd`, PNG para las láminas y copia editable en Lucidchart):
   - Diagrama 1, Autorización (v2): https://lucid.app/lucidchart/d5584416-555a-4f63-a30f-2d5be0b29c92/edit
   - Diagrama 2 (v2), Captura + asignación de unidades + orden por lotes: https://lucid.app/lucidchart/d0c03ba5-e02a-4ec5-bcee-20dff6e1e66a/edit
-  - Diagrama 3, Reverso (duplicado por idempotencia; timeout o falla → 0400/0410; sin respuesta → 3 reintentos 0421 y cola de excepciones): https://lucid.app/lucidchart/95e4de31-5803-4a18-8229-d7001e1f02d3/edit
+  - Diagrama 3, Reverso (duplicado por idempotencia; timeout o falla → 0400/0410; sin respuesta → aviso 0420 + 3 repeticiones 0421 y cola de excepciones; **la copia de Lucid tiene la versión anterior**, el PNG del repositorio ya está corregido): https://lucid.app/lucidchart/95e4de31-5803-4a18-8229-d7001e1f02d3/edit
   - Diagrama 4, Conciliación en tres niveles (T+1, 6:00 am; excepciones resueltas por un analista: devolución /refunds, reclamo a la pasarela o ajuste con doble aprobación): https://lucid.app/lucidchart/4de3b48d-be8a-4b4a-b981-7ac12f9a4a7c/edit
   - Quedaron obsoletas en Lucid: la v1 del diagrama 1 (fd30d269…) y la v1 del diagrama 2 (9be0a5f1…).
 - **Modelo con el banco fiduciario (decidido el 7-nov, 23:20):**
@@ -217,6 +217,12 @@ Se presentan en una página o lámina tipo dashboard.
   - **21 pruebas pasan** (CP-16 a CP-21 nuevas en `tests/test_ia.py`). Para las láminas: `docs/ia/matriz_confusion.png` e `importancia_variables.png`.
   - Cómo subirlo: `docs/GUIA_SUBIDA_GITHUB.md`.
 
+- **Domingo 8-nov, 21:55. Tabla ISO 8583 verificada y entregables en PDF** (Daniel + Claude):
+  - Verificación contra fuentes citadas (`docs/API_ISO8583.md`, sección 8). **Tres correcciones:** reverso sin respuesta = 0400 → aviso **0420** → repeticiones **0421** (antes 0421 directo); conciliación 0500 con campo **76** (débitos) en lugar del 74 (créditos); monedas: VES 928 y VED 926 activos, a confirmar con la pasarela. Código, prueba CP-07 y diagrama 3 actualizados; 21 pruebas en verde.
+  - Ronald completó los nombres de las filas del 7-nov en la bitácora.
+  - **PDF listos para el aula virtual** (en `docs/entregables/`): `S2_EquipoD_Diagramas.pdf`, `S2_EquipoD_API_ISO8583.pdf`, `S2_EquipoD_KPIs.pdf`, `S2_EquipoD_BaselineIA.pdf` y `S2_EquipoD_Bitacora.pdf`. Fuentes Markdown: `docs/DIAGRAMAS.md`, `docs/API_ISO8583.md`, `docs/KPIS.md`, `docs/ia/`.
+  - **Siguen pendientes:** B (front-end), C (plan de certificación), E (capturas de Swagger), F (láminas y guion), SAST/SCA en la bitácora y actualizar la copia del diagrama 3 en Lucid (opcional).
+
 ### Cómo retomar
 1. Clonar el repositorio y seguir el README (Python **3.13**, entorno virtual, `pip install -r requirements.txt`, `python -m pytest`).
 2. En una conversación nueva con Claude, subir: **este archivo**, el documento de la Sesión 1 y el PDF de instrucciones del profesor. Pedir: *"Lee el contexto y continuemos la Sesión 2 desde 'Lo que falta'"*.
@@ -227,11 +233,11 @@ Se presentan en una página o lámina tipo dashboard.
 |---|---|---|---|
 | A | ✅ **Baseline de IA — HECHO (8-nov, 21:10).** Ver `docs/ia/MODELO.md` | 1 | — |
 | B | **Front-end navegable:** registro → KYC → cuestionario → perfil + lección → firma de adhesión → aporte → portafolio. Puede ser maqueta HTML/React que llame a la API o con datos fijos | 1,5 | Endpoints en `/docs`; textos del tutor en `app/core/tutor.py` |
-| C | **Plan de certificación:** fase 1 (pasarela, SAQ A, SUDEBAN, SUNAVAL, contrato con el fiduciario) y fase 2 (independencia); actores; **casos de prueba = CP-01 a CP-15** de `tests/test_flujo.py` | 1,5 | Sección 5.1 |
-| D | **Tabla ISO 8583 para las láminas**, validada contra una fuente primaria y citada | (diagramas) | Sección 4 y `app/core/iso8583.py` |
+| C | **Plan de certificación:** fase 1 (pasarela, SAQ A, SUDEBAN, SUNAVAL, contrato con el fiduciario) y fase 2 (independencia); actores; **casos de prueba = CP-01 a CP-21** de `tests/test_flujo.py` y `tests/test_ia.py` | 1,5 | Sección 5.1 |
+| D | ✅ **Tabla ISO 8583 — HECHA (8-nov, 21:55).** Ver `docs/API_ISO8583.md` | — | — |
 | E | **Capturas de Swagger** (`/docs`, respuesta de `POST /v1/aportes`, cierre) | — | Correr `python -m uvicorn app.main:app` **sin** `--reload` |
 | F | **Láminas (12 a 15, PDF)** + **guion** (hablan los 4; rotar roles respecto a la Sesión 1). Incluir el mapa de stakeholders y el C4 actualizados con la pasarela y el banco fiduciario. Marcar como "simulado" lo que lo sea | 4 (pres.) | Diagramas PNG, `docs/kpis_tablero.png`, `scripts/demo_maria.py`, sección 7 |
-| G | **Bitácora:** poner nombres, completar validaciones y exportar a PDF | — | `BITACORA_IA_S2.md` |
+| G | 🟡 **Bitácora:** nombres ✅, ISO ✅, PDF ✅. Falta: anotar el SAST/SCA y agregar una fila por cada uso de IA posterior (front-end, plan, láminas) y volver a exportar | — | `BITACORA_IA_S2.md` |
 
 ### Avisos para la demo del martes
 - Los datos viven **en memoria**: si se reinicia el servidor, se pierden (incluidos los tokens). Hacer el recorrido completo de una vez.

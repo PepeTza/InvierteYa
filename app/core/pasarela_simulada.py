@@ -156,7 +156,7 @@ class PasarelaSimulada:
         return Respuesta(status="CAPTURED", response_code="00", authorization_id=a.id,
                          auth_code=a.auth_code, rrn=a.rrn, latencia_ms=latencia, iso=iso)
 
-    # ---------- reverso: 0400 / 0410 (0421 si no hay respuesta) ----------
+    # ---------- reverso: 0400 / 0410 (sin respuesta: aviso 0420 y repeticiones 0421) ----------
     def reversar(self, authorization_id: str, motivo: str,
                  momento: datetime | None = None) -> Respuesta:
         momento = momento or datetime.now()
@@ -174,7 +174,10 @@ class PasarelaSimulada:
         latencia = self._latencia()
         if (self._forzado(("REVERSO_SIN_RESPUESTA",))
                 or self.rng.random() < self.config.tasa_reverso_sin_respuesta):
-            for _ in range(3):  # 3 reintentos con aviso repetido, cada 60 s
+            # Sin 0410: se envía el aviso de reverso 0420 y se repite como 0421
+            # (3 repeticiones, cada 60 s) mientras no llegue el 0430.
+            iso.append(iso8583.reverso(a.monto, stan, campo90, momento, aviso=True))
+            for _ in range(3):
                 iso.append(iso8583.reverso(a.monto, stan, campo90, momento, repetido=True))
             a.estado = "REVERSAL_PENDING"
             return Respuesta(status="REVERSAL_PENDING", authorization_id=a.id, rrn=a.rrn,

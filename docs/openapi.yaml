@@ -353,7 +353,8 @@ paths:
     post:
       tags:
       - Pasarela simulada
-      summary: Reverso (ISO 8583 0400/0410, 0421 si no hay respuesta)
+      summary: Reverso (ISO 8583 0400/0410; sin respuesta, aviso 0420 y repeticiones
+        0421)
       requestBody:
         required: true
         content:

@@ -207,7 +207,7 @@ class InvierteYa:
             evento("REVERSADO", "Reverso confirmado (0410)")
             aporte["mensaje"] = "No se realizó el cobro. Si ves una retención, tu banco la liberará."
         else:
-            evento("REVERSO_PENDIENTE", "Sin respuesta tras 3 reintentos (0421); va a conciliación")
+            evento("REVERSO_PENDIENTE", "Sin respuesta: aviso 0420 + 3 repeticiones 0421; va a conciliación")
             aporte["mensaje"] = "Estamos confirmando tu pago con el banco. No vuelvas a intentarlo aún."
             self.excepciones.append({"tipo": "REVERSO_PENDIENTE", "aporte_id": aporte["id"]})
 

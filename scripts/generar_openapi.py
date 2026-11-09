@@ -101,7 +101,7 @@ paths = {
         "tags": ["Pasarela simulada"], "summary": "Captura (ISO 8583 0220/0230)",
         "requestBody": cuerpo("CapturaIn"), "responses": {"200": resp("RespuestaPasarela")}}},
     "/pasarela/v1/reversals": {"post": {
-        "tags": ["Pasarela simulada"], "summary": "Reverso (ISO 8583 0400/0410, 0421 si no hay respuesta)",
+        "tags": ["Pasarela simulada"], "summary": "Reverso (ISO 8583 0400/0410; sin respuesta, aviso 0420 y repeticiones 0421)",
         "requestBody": cuerpo("ReversoIn"), "responses": {"200": resp("RespuestaPasarela")}}},
     "/pasarela/v1/refunds": {"post": {
         "tags": ["Pasarela simulada"], "summary": "Devolución de un cobro capturado",
