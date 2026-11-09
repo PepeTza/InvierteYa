@@ -725,6 +725,38 @@ components:
         motor:
           title: Motor
           type: string
+        perfil_reglas:
+          anyOf:
+          - enum:
+            - CONSERVADOR
+            - MODERADO
+            - AGRESIVO
+            type: string
+          - type: 'null'
+          default: null
+          description: Perfil según las reglas de idoneidad (respaldo y comparación)
+          title: Perfil Reglas
+        probabilidad:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          description: Probabilidad del perfil según el modelo baseline
+          title: Probabilidad
+        probabilidades:
+          anyOf:
+          - additionalProperties:
+              type: number
+            type: object
+          - type: 'null'
+          default: null
+          description: Probabilidad de cada perfil
+          title: Probabilidades
+        revision_humana:
+          default: false
+          description: 'True si la probabilidad es < 60%: un asesor revisa el caso'
+          title: Revision Humana
+          type: boolean
       required:
       - perfil
       - puntaje

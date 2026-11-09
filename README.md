@@ -1,7 +1,7 @@
 # InvierteYa · Prototipo backend (Sesión 2)
 
 Inversión fraccionada desde **$5** a través de un **fideicomiso** administrado por un banco,
-con perfil de riesgo y **tutor didáctico**. Equipo D · Fintech con IA.
+con perfil de riesgo **por IA (modelo baseline)** y **tutor didáctico**. Equipo D · Fintech con IA.
 
 > **Todo lo externo está SIMULADO:** pasarela de pago, adquirente, suiche, emisor (ISO 8583),
 > banco fiduciario, casa de bolsa y CVV. **Solo datos sintéticos**: nunca usar tarjetas reales.
@@ -13,12 +13,14 @@ python -m venv .venv
 # Windows: .venv\Scripts\activate    ·    macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 
-python -m pytest -v                  # 15 casos de prueba (base del plan de certificación)
+python ia/generar_dataset.py         # dataset sintético de 5.000 usuarios -> data/
+python ia/entrenar.py                # entrena el modelo de perfil -> ia/modelo_perfil.joblib + docs/ia/
+python -m pytest -v                  # 21 casos de prueba (CP-01 a CP-21)
 python scripts/demo_maria.py         # transacción de María de punta a punta (respaldo del speech)
 python scripts/kpis.py               # prueba de carga simulada -> docs/kpis_tablero.png
 python scripts/generar_openapi.py    # regenera docs/openapi.yaml
 
-uvicorn app.main:app --reload        # API en http://127.0.0.1:8000/docs (Swagger UI)
+python -m uvicorn app.main:app      # API en http://127.0.0.1:8000/docs (Swagger UI)
 ```
 
 En Swagger UI, pulsar **Authorize** y escribir `demo-token` (autenticación simulada).
@@ -39,11 +41,26 @@ Sin instalar nada, el archivo `docs/openapi.yaml` se puede ver pegándolo en htt
 | `app/core/iso8583.py` | Mensajes ISO 8583 simulados (0100/0110, 0220/0230, 0400/0410/0421, 0500) |
 | `app/core/fideicomiso.py` | Un fideicomiso con 3 portafolios, valor de unidad, propuesta de órdenes y aprobación del fiduciario |
 | `app/core/conciliacion.py` | Conciliación en 3 niveles |
-| `app/core/perfil.py` | Perfil de riesgo por reglas (también etiqueta el dataset sintético del modelo baseline) |
+| `app/core/perfil.py` | Puntaje de idoneidad por reglas: etiqueta el dataset, explica el perfil y es el respaldo si no hay modelo |
+| `ia/generar_dataset.py` | Dataset sintético de 5.000 usuarios (10 variables + etiqueta con ruido) |
+| `ia/entrenar.py` | Compara árbol de decisión y regresión logística, elige, mide y guarda el modelo |
+| `ia/predictor.py` | Usa el modelo en la API: reglas de seguridad + revisión humana si la probabilidad es < 60% |
+| `data/dataset_sintetico.csv` | El dataset (100% sintético) |
 | `app/core/tutor.py` | Tutor con contenido predefinido (10 lecciones) y regla de selección |
 | `app/api/esquemas.py`, `app/main.py` | API REST con FastAPI (genera OpenAPI 3) |
-| `tests/test_flujo.py` | Casos de prueba CP-01 a CP-15 |
+| `tests/test_flujo.py` | Casos de prueba CP-01 a CP-15 (flujo transaccional) |
+| `tests/test_ia.py` | Casos de prueba CP-16 a CP-21 (baseline de IA) |
 | `docs/` | `openapi.yaml`, `kpis.json`, `kpis_tablero.png`, salida de la demo |
+| `docs/ia/` | `DATASET.md`, `MODELO.md`, `metricas.json`, matriz de confusión e importancia de variables |
+| `docs/GUIA_SUBIDA_GITHUB.md` | Paso a paso para subir los cambios al repositorio |
+
+## Baseline de IA (resumen)
+
+Modelo: **regresión logística multinomial** (scikit-learn), entrenado con 5.000 usuarios **sintéticos**.
+En el 20% de prueba: **exactitud 89,7%**, **F1 por clase 0,87 / 0,92 / 0,83**, **0 Conservadores
+clasificados como Agresivos** y AUC de 0,978. Cumple las metas de la ficha de IA de la Sesión 1.
+Reglas que el modelo no puede saltarse: sin fondo de emergencia nunca Agresivo; probabilidad < 60% →
+revisión de un asesor (con perfil provisional más conservador). Detalle en `docs/ia/MODELO.md`.
 
 ## Decisiones de diseño (resumen)
 
@@ -61,4 +78,5 @@ Sin instalar nada, el archivo `docs/openapi.yaml` se puede ver pegándolo en htt
 ## Supuestos a validar
 
 Comisión de la pasarela (3%), límite de $1.000 por aporte, composición de los portafolios Moderado y
-Agresivo, tasas de rechazo y latencias simuladas, y los campos ISO 8583 contra el estándar.
+Agresivo, tasas de rechazo y latencias simuladas, los campos ISO 8583 contra el estándar, y las
+distribuciones, puntajes y cortes del dataset sintético (validar con un asesor de inversiones).

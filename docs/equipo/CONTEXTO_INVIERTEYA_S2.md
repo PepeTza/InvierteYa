@@ -113,8 +113,8 @@ Resuelve el riesgo abierto de la Sesión 1 sobre la figura legal de la inversió
 | 3 | Front-end navegable (registro → cuestionario → perfil + lección del tutor → aporte → portafolio) | 1,5 | ⬜ |
 | 4 | Plan de certificación (fase 1 con pasarela / fase 2 independencia; actores; casos de prueba) | 1,5 | ⬜ |
 | 5 | Tablero de KPIs medidos en el prototipo: tasa de aprobación, latencia p95, TPS, tasa de reversos | 1 | ✅ `docs/kpis_tablero.png` |
-| 6 | Baseline de IA: dataset sintético (~5.000 usuarios) documentado + modelo + métricas | 1 | ⬜ |
-| 7 | Bitácora de uso de IA (ver `BITACORA_IA_S2.md`) | (incl. en 6) | ⬜ |
+| 6 | Baseline de IA: dataset sintético (~5.000 usuarios) documentado + modelo + métricas | 1 | ✅ `ia/`, `docs/ia/`, `S2_EquipoD_BaselineIA.pdf` |
+| 7 | Bitácora de uso de IA (ver `BITACORA_IA_S2.md`) | (incl. en 6) | 🟡 filas del baseline listas; faltan nombres del 7-nov, SAST/SCA y las tareas que sigan |
 | 8 | Láminas: 12 a 15, en PDF | 4 (presentación) | ⬜ |
 | 9 | Guion del speech (quién habla, en qué lámina, mensaje clave). **Hablan todos y el rol rota respecto a la Sesión 1** | — | ⬜ |
 
@@ -210,6 +210,13 @@ Se presentan en una página o lámina tipo dashboard.
   - ⚠️ **Riesgo de viabilidad:** la comisión por operación de InvierteYa (1%, Sesión 1) es menor que la de la pasarela, así que cada aporte con tarjeta deja pérdida. Hay que revisarlo (subir comisión, cobrar un cargo fijo o promover medios más baratos).
 - **Domingo 8-nov, 00:30. Cierre de la sesión de trabajo del sábado.** Todo el código y los diagramas están en el **repositorio de GitHub** (carpeta `docs/diagramas`). Probado en Swagger: un aporte real quedó ASIGNADO y el cierre concilió en los 3 niveles.
 
+- **Domingo 8-nov, 21:10. Baseline de IA listo** (Daniel + Claude):
+  - Dataset sintético: 5.000 usuarios (`data/dataset_sintetico.csv`), etiquetado con `perfil.py` + ruido (desv. 0,75) + regla del fondo de emergencia. Distribución: 28% Conservador · 62% Moderado · 10% Agresivo. Ficha en `docs/ia/DATASET.md`.
+  - Modelo elegido: **regresión logística** (frente al árbol de decisión, que no llegó a F1 de 0,80 en Agresivo). En prueba: **exactitud 89,7% · F1 0,87/0,92/0,83 · 0 Conservador→Agresivo · AUC 0,978**. Estable con 5 semillas (media de 90,8%). Sin sesgo grueso por edad ni ingreso.
+  - Conectado en `evaluar_perfil`: probabilidad < 60% → revisión de un asesor con perfil provisional más conservador; si no hay modelo, se usan las reglas. La API devuelve `probabilidad`, `probabilidades`, `revision_humana` y `perfil_reglas`.
+  - **21 pruebas pasan** (CP-16 a CP-21 nuevas en `tests/test_ia.py`). Para las láminas: `docs/ia/matriz_confusion.png` e `importancia_variables.png`.
+  - Cómo subirlo: `docs/GUIA_SUBIDA_GITHUB.md`.
+
 ### Cómo retomar
 1. Clonar el repositorio y seguir el README (Python **3.13**, entorno virtual, `pip install -r requirements.txt`, `python -m pytest`).
 2. En una conversación nueva con Claude, subir: **este archivo**, el documento de la Sesión 1 y el PDF de instrucciones del profesor. Pedir: *"Lee el contexto y continuemos la Sesión 2 desde 'Lo que falta'"*.
@@ -218,7 +225,7 @@ Se presentan en una página o lámina tipo dashboard.
 ### Lo que falta (carga: domingo 8-nov, 23:59)
 | # | Tarea | Pts | Insumos ya disponibles |
 |---|---|---|---|
-| A | **Baseline de IA:** dataset sintético (~5.000 usuarios) etiquetado con `app/core/perfil.py` + ruido; entrenar árbol de decisión o regresión logística; reportar exactitud, F1 por clase, matriz de confusión y verificar **0 casos Conservador→Agresivo**; documentar el dataset | 1 | Reglas y variables en `perfil.py`; métricas objetivo en la sección 5.3 |
+| A | ✅ **Baseline de IA — HECHO (8-nov, 21:10).** Ver `docs/ia/MODELO.md` | 1 | — |
 | B | **Front-end navegable:** registro → KYC → cuestionario → perfil + lección → firma de adhesión → aporte → portafolio. Puede ser maqueta HTML/React que llame a la API o con datos fijos | 1,5 | Endpoints en `/docs`; textos del tutor en `app/core/tutor.py` |
 | C | **Plan de certificación:** fase 1 (pasarela, SAQ A, SUDEBAN, SUNAVAL, contrato con el fiduciario) y fase 2 (independencia); actores; **casos de prueba = CP-01 a CP-15** de `tests/test_flujo.py` | 1,5 | Sección 5.1 |
 | D | **Tabla ISO 8583 para las láminas**, validada contra una fuente primaria y citada | (diagramas) | Sección 4 y `app/core/iso8583.py` |

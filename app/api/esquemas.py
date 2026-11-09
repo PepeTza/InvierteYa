@@ -59,6 +59,11 @@ class PerfilOut(BaseModel):
     avisos: list[str]
     leccion: Leccion | None
     motor: str
+    perfil_reglas: Literal["CONSERVADOR", "MODERADO", "AGRESIVO"] | None = Field(
+        None, description="Perfil según las reglas de idoneidad (respaldo y comparación)")
+    probabilidad: float | None = Field(None, description="Probabilidad del perfil según el modelo baseline")
+    probabilidades: dict[str, float] | None = Field(None, description="Probabilidad de cada perfil")
+    revision_humana: bool = Field(False, description="True si la probabilidad es < 60%: un asesor revisa el caso")
 
 
 class AporteIn(BaseModel):

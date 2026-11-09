@@ -92,7 +92,13 @@ def evaluar(c: Cuestionario) -> dict:
     puntos = _puntos(c)
     total = round(sum(puntos.values()), 2)
     perfil, avisos = aplicar_reglas_seguridad(puntaje_a_perfil(total), c)
-    # Explicación en lenguaje simple: qué empujó hacia más riesgo y qué hacia menos.
+    return {"perfil": perfil, "puntaje": total, "puntaje_maximo": PUNTAJE_MAXIMO,
+            "explicacion": explicar(puntos, perfil), "avisos": avisos, "detalle_puntos": puntos}
+
+
+def explicar(puntos: dict[str, float], perfil: str) -> str:
+    """Explicación en lenguaje simple: qué empujó hacia más riesgo y qué hacia menos.
+    Se usa tanto con el perfil de las reglas como con el del modelo baseline."""
     ordenados = sorted(puntos.items(), key=lambda kv: kv[1], reverse=True)
     hacia_riesgo = [EXPLICACIONES[k] for k, v in ordenados[:2] if v > 0]
     hacia_cuidado = [frase for k, frase in EXPLICACIONES_CUIDADO.items() if puntos[k] == 0][:2]
@@ -106,5 +112,4 @@ def evaluar(c: Cuestionario) -> dict:
         if hacia_cuidado:
             explicacion += f"; la moderan que {' y '.join(hacia_cuidado)}"
     explicacion += "."
-    return {"perfil": perfil, "puntaje": total, "puntaje_maximo": PUNTAJE_MAXIMO,
-            "explicacion": explicacion, "avisos": avisos, "detalle_puntos": puntos}
+    return explicacion
