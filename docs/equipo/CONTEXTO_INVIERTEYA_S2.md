@@ -110,8 +110,13 @@ Resuelve el riesgo abierto de la Sesión 1 sobre la figura legal de la inversió
 |---|---|---|---|
 | 1 | Diagramas de secuencia: autorización, captura, reverso, conciliación (con el rol del suiche y cada actor) + mapeo ISO 8583 | 2,5 | ✅ diagramas (`S2_EquipoD_Diagramas.pdf`) / ✅ tabla ISO final (`S2_EquipoD_API_ISO8583.pdf`) |
 | 2 | API OpenAPI 3 + backend simulado (FastAPI + pasarela/suiche mock) en Git | 2,5 | ✅ código en GitHub (`PepeTza/InvierteYa`) / ✅ probado en Swagger con un aporte real y un cierre que concilia |
+<<<<<<< Updated upstream
 | 3 | Front-end navegable (registro → cuestionario → perfil + lección del tutor → aporte → portafolio) | 1,5 | ✅ React en `frontend/`, vistas móvil y web, conectado a la API real (integrado en `main` el 8-nov) |
 | 4 | Plan de certificación (fase 1 con pasarela / fase 2 independencia; actores; casos de prueba) | 1,5 | ⬜ |
+=======
+| 3 | Front-end navegable (registro → cuestionario → perfil + lección del tutor → aporte → portafolio) | 1,5 | ⬜ |
+| 4 | Plan de certificación (fase 1 con pasarela / fase 2 independencia; actores; casos de prueba) | 1,5 | ✅ `docs/PLAN_CERTIFICACION.md` / `S2_EquipoD_PlanCertificacion.pdf` |
+>>>>>>> Stashed changes
 | 5 | Tablero de KPIs medidos en el prototipo: tasa de aprobación, latencia p95, TPS, tasa de reversos | 1 | ✅ `docs/kpis_tablero.png` |
 | 6 | Baseline de IA: dataset sintético (~5.000 usuarios) documentado + modelo + métricas | 1 | ✅ `ia/`, `docs/ia/`, `S2_EquipoD_BaselineIA.pdf` |
 | 7 | Bitácora de uso de IA (ver `BITACORA_IA_S2.md`) | (incl. en 6) | 🟡 filas del baseline listas; faltan nombres del 7-nov, SAST/SCA y las tareas que sigan |
@@ -223,6 +228,7 @@ Se presentan en una página o lámina tipo dashboard.
   - **PDF listos para el aula virtual** (en `docs/entregables/`): `S2_EquipoD_Diagramas.pdf`, `S2_EquipoD_API_ISO8583.pdf`, `S2_EquipoD_KPIs.pdf`, `S2_EquipoD_BaselineIA.pdf` y `S2_EquipoD_Bitacora.pdf`. Fuentes Markdown: `docs/DIAGRAMAS.md`, `docs/API_ISO8583.md`, `docs/KPIS.md`, `docs/ia/`.
   - **Siguen pendientes:** B (front-end), C (plan de certificación), E (capturas de Swagger), F (láminas y guion), SAST/SCA en la bitácora y actualizar la copia del diagrama 3 en Lucid (opcional).
 
+<<<<<<< Updated upstream
 - **Domingo 8-nov, ~22:00. Front-end navegable listo** (David, con Claude Code; registrar en la bitácora):
   - **Stack:** React + TypeScript + Vite + Tailwind CSS en `frontend/`. La versión compilada (`frontend/dist`) va en el repo: la app se ve con solo `uvicorn app.main:app` en **http://127.0.0.1:8000/app** (sin Node). Para modificarla: `cd frontend && npm install && npm run build` antes de cada commit.
   - **Flujo:** bienvenida → registro → KYC (simulado) → cuestionario de 10 preguntas (una por pantalla, se confirma con "Continuar") → perfil con medidor, "¿Por qué este perfil?" en viñetas y lección del tutor → contrato de adhesión → tarjeta (formulario de la pasarela; cualquier número ficticio, crédito/débito, Visa/Mastercard/Amex; InvierteYa solo recibe un token) → aporte con monto libre ($5 a $1.000) → autorización/captura/asignación animadas con los eventos reales y visor de mensajes ISO 8583 → portafolio.
@@ -238,6 +244,11 @@ Se presentan en una página o lámina tipo dashboard.
   - Fideicomiso frente a la Ley de Fideicomisos y SUDEBAN, y SAQ A frente a la guía de PCI-DSS 4.0: en la bitácora quedaron como parte de la matriz de cumplimiento de la Sesión 4. ⚠️ Preguntar al profesor si el fiduciario es un banco o la casa de bolsa, y la viabilidad del fideicomiso colectivo con adhesión digital.
   - Moneda en bolívares (VES 928 frente a VED 926): definir con la pasarela en la fase 2.
   - La copia de Lucid del diagrama 3 no tiene la corrección 0420/0421 (el PNG del repositorio sí).
+=======
+- **Domingo 8-nov. Plan de certificación listo** (Jesus + Claude):
+  - `docs/PLAN_CERTIFICACION.md` y `docs/entregables/S2_EquipoD_PlanCertificacion.pdf`: fase 1 (8 certificaciones: integración con la pasarela, SAQ A, SUDEBAN fintech, nube, fideicomiso, SUNAVAL, LC/FT, validación del modelo) y fase 2 (homologación con el suiche, afiliación directa, PCI completo, segundo fiduciario), actores, CP-01 a CP-21 con el requisito que cubre cada uno y su resultado, 6 casos pendientes para el sandbox real (CP-P1 a CP-P6), criterios de salida y cronograma.
+  - Fila agregada en `BITACORA_IA_S2.md` (falta volver a exportar `S2_EquipoD_Bitacora.pdf`).
+>>>>>>> Stashed changes
 
 ### Cómo retomar
 1. Clonar el repositorio y seguir el README (Python **3.13**, entorno virtual, `pip install -r requirements.txt`, `python -m pytest`).
@@ -248,8 +259,13 @@ Se presentan en una página o lámina tipo dashboard.
 | # | Tarea | Pts | Insumos ya disponibles |
 |---|---|---|---|
 | A | ✅ **Baseline de IA — HECHO (8-nov, 21:10).** Ver `docs/ia/MODELO.md` | 1 | — |
+<<<<<<< Updated upstream
 | B | ✅ **Front-end navegable** (hecho el 8-nov; ver "Estado actual"). Integrado en `main` | 1,5 | `frontend/` · http://127.0.0.1:8000/app |
 | C | **Plan de certificación:** fase 1 (pasarela, SAQ A, SUDEBAN, SUNAVAL, contrato con el fiduciario) y fase 2 (independencia); actores; **casos de prueba = CP-01 a CP-21** de `tests/test_flujo.py` y `tests/test_ia.py` | 1,5 | Sección 5.1 |
+=======
+| B | **Front-end navegable:** registro → KYC → cuestionario → perfil + lección → firma de adhesión → aporte → portafolio. Puede ser maqueta HTML/React que llame a la API o con datos fijos | 1,5 | Endpoints en `/docs`; textos del tutor en `app/core/tutor.py` |
+| C | ✅ **HECHO (8-nov, Jesus).** Ver `docs/PLAN_CERTIFICACION.md` — **Plan de certificación:** fase 1 (pasarela, SAQ A, SUDEBAN, SUNAVAL, contrato con el fiduciario) y fase 2 (independencia); actores; **casos de prueba = CP-01 a CP-21** de `tests/test_flujo.py` y `tests/test_ia.py` | 1,5 | Sección 5.1 |
+>>>>>>> Stashed changes
 | D | ✅ **Tabla ISO 8583 — HECHA (8-nov, 21:55).** Ver `docs/API_ISO8583.md` | — | — |
 | E | **Capturas de Swagger** (`/docs`, respuesta de `POST /v1/aportes`, cierre) | — | Correr `python -m uvicorn app.main:app` **sin** `--reload` |
 | F | **Láminas (12 a 15, PDF)** + **guion** (hablan los 4; rotar roles respecto a la Sesión 1). Incluir el mapa de stakeholders y el C4 actualizados con la pasarela y el banco fiduciario. Marcar como "simulado" lo que lo sea | 4 (pres.) | Diagramas PNG, `docs/kpis_tablero.png`, `scripts/demo_maria.py`, sección 7 |
