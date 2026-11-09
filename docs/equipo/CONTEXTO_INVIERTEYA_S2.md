@@ -110,7 +110,7 @@ Resuelve el riesgo abierto de la Sesión 1 sobre la figura legal de la inversió
 |---|---|---|---|
 | 1 | Diagramas de secuencia: autorización, captura, reverso, conciliación (con el rol del suiche y cada actor) + mapeo ISO 8583 | 2,5 | ✅ diagramas / ⬜ tabla ISO final |
 | 2 | API OpenAPI 3 + backend simulado (FastAPI + pasarela/suiche mock) en Git | 2,5 | ✅ código en `invierteya.zip` / ✅ probado en Swagger con un aporte real y un cierre que concilia / ⬜ subir a Git |
-| 3 | Front-end navegable (registro → cuestionario → perfil + lección del tutor → aporte → portafolio) | 1,5 | ⬜ |
+| 3 | Front-end navegable (registro → cuestionario → perfil + lección del tutor → aporte → portafolio) | 1,5 | ✅ React en `frontend/`, vistas móvil y web, conectado a la API real (rama `feat/frontend-prototipo`; falta push: ver "Estado actual") |
 | 4 | Plan de certificación (fase 1 con pasarela / fase 2 independencia; actores; casos de prueba) | 1,5 | ⬜ |
 | 5 | Tablero de KPIs medidos en el prototipo: tasa de aprobación, latencia p95, TPS, tasa de reversos | 1 | ✅ `docs/kpis_tablero.png` |
 | 6 | Baseline de IA: dataset sintético (~5.000 usuarios) documentado + modelo + métricas | 1 | ⬜ |
@@ -210,6 +210,16 @@ Se presentan en una página o lámina tipo dashboard.
   - ⚠️ **Riesgo de viabilidad:** la comisión por operación de InvierteYa (1%, Sesión 1) es menor que la de la pasarela, así que cada aporte con tarjeta deja pérdida. Hay que revisarlo (subir comisión, cobrar un cargo fijo o promover medios más baratos).
 - **Domingo 8-nov, 00:30. Cierre de la sesión de trabajo del sábado.** Todo el código y los diagramas están en el **repositorio de GitHub** (carpeta `docs/diagramas`). Probado en Swagger: un aporte real quedó ASIGNADO y el cierre concilió en los 3 niveles.
 
+- **Domingo 8-nov, ~22:00. Front-end navegable listo** (David, con Claude Code; registrar en la bitácora):
+  - **Stack:** React + TypeScript + Vite + Tailwind CSS en `frontend/`. La versión compilada (`frontend/dist`) va en el repo: la app se ve con solo `uvicorn app.main:app` en **http://127.0.0.1:8000/app** (sin Node). Para modificarla: `cd frontend && npm install && npm run build` antes de cada commit.
+  - **Flujo:** bienvenida → registro → KYC (simulado) → cuestionario de 10 preguntas (una por pantalla, se confirma con "Continuar") → perfil con medidor, "¿Por qué este perfil?" en viñetas y lección del tutor → contrato de adhesión → tarjeta (formulario de la pasarela; cualquier número ficticio, crédito/débito, Visa/Mastercard/Amex; InvierteYa solo recibe un token) → aporte con monto libre ($5 a $1.000) → autorización/captura/asignación animadas con los eventos reales y visor de mensajes ISO 8583 → portafolio.
+  - **Dos vistas** (selector Móvil/Web en el panel): la móvil va dentro de un teléfono; la web va dentro de un navegador, con landing de dos columnas, registro con columna lateral de pasos ("¿Por qué te lo pedimos?") y portafolio tipo dashboard (indicadores, composición con barra segmentada y montos, perfil, tutor y tabla de actividad con RRN).
+  - **Panel de demo** (para el presentador, no es parte de la app): forzar el **próximo** resultado del pago (00, 51, 05, 59, timeout → reverso, falla de captura → reverso), responder el cuestionario como María, abrir Swagger, cierre del día con conciliación en 3 niveles y "Reiniciar recorrido" (borra app y servidor).
+  - **Cambios en la API:** sirve el front en `/app`; `POST /v1/demo/reiniciar`; `reemplazar=true` en `/v1/demo/forzar-escenario`; el perfil devuelve `factores_suben` y `factores_moderan` (`docs/openapi.yaml` regenerado). Las 15 pruebas siguen pasando.
+  - **Decisión de UX:** la pregunta de dependientes se reformuló como **"¿Cómo es tu hogar?"** (Solo yo / Yo y 1, 2, 3+ personas a mi cargo). No se usó "tamaño del grupo familiar" porque mide otra cosa (convivir no es depender) y bajaría el perfil por error.
+  - **Colores de los gráficos** validados con un verificador de paleta (contraste y daltonismo): renta fija `#0f7a55`, fondos `#2f8fd0`, acciones `#9cbf2e`.
+  - **Git:** commits en la rama `feat/frontend-prototipo` con la cuenta de la UCAB **DavidCR20**. **El push fue rechazado (403, 8-nov):** PepeTza debe agregar a DavidCR20 como colaborador en GitHub (Settings → Collaborators) y DavidCR20 aceptar la invitación; luego `git push -u origin feat/frontend-prototipo` y pull request a `main`.
+
 ### Cómo retomar
 1. Clonar el repositorio y seguir el README (Python **3.13**, entorno virtual, `pip install -r requirements.txt`, `python -m pytest`).
 2. En una conversación nueva con Claude, subir: **este archivo**, el documento de la Sesión 1 y el PDF de instrucciones del profesor. Pedir: *"Lee el contexto y continuemos la Sesión 2 desde 'Lo que falta'"*.
@@ -219,7 +229,7 @@ Se presentan en una página o lámina tipo dashboard.
 | # | Tarea | Pts | Insumos ya disponibles |
 |---|---|---|---|
 | A | **Baseline de IA:** dataset sintético (~5.000 usuarios) etiquetado con `app/core/perfil.py` + ruido; entrenar árbol de decisión o regresión logística; reportar exactitud, F1 por clase, matriz de confusión y verificar **0 casos Conservador→Agresivo**; documentar el dataset | 1 | Reglas y variables en `perfil.py`; métricas objetivo en la sección 5.3 |
-| B | **Front-end navegable:** registro → KYC → cuestionario → perfil + lección → firma de adhesión → aporte → portafolio. Puede ser maqueta HTML/React que llame a la API o con datos fijos | 1,5 | Endpoints en `/docs`; textos del tutor en `app/core/tutor.py` |
+| B | ✅ **Front-end navegable** (hecho el 8-nov; ver "Estado actual"). Pendiente: push de la rama `feat/frontend-prototipo` y merge a `main` | 1,5 | `frontend/` · http://127.0.0.1:8000/app |
 | C | **Plan de certificación:** fase 1 (pasarela, SAQ A, SUDEBAN, SUNAVAL, contrato con el fiduciario) y fase 2 (independencia); actores; **casos de prueba = CP-01 a CP-15** de `tests/test_flujo.py` | 1,5 | Sección 5.1 |
 | D | **Tabla ISO 8583 para las láminas**, validada contra una fuente primaria y citada | (diagramas) | Sección 4 y `app/core/iso8583.py` |
 | E | **Capturas de Swagger** (`/docs`, respuesta de `POST /v1/aportes`, cierre) | — | Correr `python -m uvicorn app.main:app` **sin** `--reload` |
@@ -230,3 +240,6 @@ Se presentan en una página o lámina tipo dashboard.
 - Los datos viven **en memoria**: si se reinicia el servidor, se pierden (incluidos los tokens). Hacer el recorrido completo de una vez.
 - El cierre de un día corre **una sola vez** (`"ya_cerrado": true` al repetir).
 - Tener `python scripts/demo_maria.py` como respaldo si falla la conexión.
+- **Front-end:** antes del primer aporte, pulsar **"Aprobada"** en el panel. La pasarela simulada usa una semilla fija y su primera transacción aleatoria sale rechazada con 51.
+- Para empezar limpio: **"Reiniciar recorrido"** en el panel (dos toques). Si la página se ve rara, recargar con Ctrl + F5.
+- Ensayar con la vista **Web** en el proyector y tener la **Móvil** lista para mostrar que la misma app funciona en el teléfono.
