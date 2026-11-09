@@ -110,7 +110,7 @@ Resuelve el riesgo abierto de la Sesión 1 sobre la figura legal de la inversió
 |---|---|---|---|
 | 1 | Diagramas de secuencia: autorización, captura, reverso, conciliación (con el rol del suiche y cada actor) + mapeo ISO 8583 | 2,5 | ✅ diagramas / ⬜ tabla ISO final |
 | 2 | API OpenAPI 3 + backend simulado (FastAPI + pasarela/suiche mock) en Git | 2,5 | ✅ código en `invierteya.zip` / ✅ probado en Swagger con un aporte real y un cierre que concilia / ⬜ subir a Git |
-| 3 | Front-end navegable (registro → cuestionario → perfil + lección del tutor → aporte → portafolio) | 1,5 | ✅ React en `frontend/`, vistas móvil y web, conectado a la API real (rama `feat/frontend-prototipo`; falta push: ver "Estado actual") |
+| 3 | Front-end navegable (registro → cuestionario → perfil + lección del tutor → aporte → portafolio) | 1,5 | ✅ React en `frontend/`, vistas móvil y web, conectado a la API real (rama `feat/frontend-prototipo` en GitHub; falta merge a `main`) |
 | 4 | Plan de certificación (fase 1 con pasarela / fase 2 independencia; actores; casos de prueba) | 1,5 | ⬜ |
 | 5 | Tablero de KPIs medidos en el prototipo: tasa de aprobación, latencia p95, TPS, tasa de reversos | 1 | ✅ `docs/kpis_tablero.png` |
 | 6 | Baseline de IA: dataset sintético (~5.000 usuarios) documentado + modelo + métricas | 1 | ⬜ |
@@ -218,7 +218,7 @@ Se presentan en una página o lámina tipo dashboard.
   - **Cambios en la API:** sirve el front en `/app`; `POST /v1/demo/reiniciar`; `reemplazar=true` en `/v1/demo/forzar-escenario`; el perfil devuelve `factores_suben` y `factores_moderan` (`docs/openapi.yaml` regenerado). Las 15 pruebas siguen pasando.
   - **Decisión de UX:** la pregunta de dependientes se reformuló como **"¿Cómo es tu hogar?"** (Solo yo / Yo y 1, 2, 3+ personas a mi cargo). No se usó "tamaño del grupo familiar" porque mide otra cosa (convivir no es depender) y bajaría el perfil por error.
   - **Colores de los gráficos** validados con un verificador de paleta (contraste y daltonismo): renta fija `#0f7a55`, fondos `#2f8fd0`, acciones `#9cbf2e`.
-  - **Git:** commits en la rama `feat/frontend-prototipo` con la cuenta de la UCAB **DavidCR20**. **El push fue rechazado (403, 8-nov):** PepeTza debe agregar a DavidCR20 como colaborador en GitHub (Settings → Collaborators) y DavidCR20 aceptar la invitación; luego `git push -u origin feat/frontend-prototipo` y pull request a `main`.
+  - **Git:** commits en la rama `feat/frontend-prototipo` con la cuenta de la UCAB **DavidCR20**. **Rama subida a GitHub el 8-nov** (DavidCR20 ya es colaborador). Falta abrir el pull request y pasarla a `main`: https://github.com/PepeTza/InvierteYa/pull/new/feat/frontend-prototipo
 
 ### Cómo retomar
 1. Clonar el repositorio y seguir el README (Python **3.13**, entorno virtual, `pip install -r requirements.txt`, `python -m pytest`).
@@ -229,7 +229,7 @@ Se presentan en una página o lámina tipo dashboard.
 | # | Tarea | Pts | Insumos ya disponibles |
 |---|---|---|---|
 | A | **Baseline de IA:** dataset sintético (~5.000 usuarios) etiquetado con `app/core/perfil.py` + ruido; entrenar árbol de decisión o regresión logística; reportar exactitud, F1 por clase, matriz de confusión y verificar **0 casos Conservador→Agresivo**; documentar el dataset | 1 | Reglas y variables en `perfil.py`; métricas objetivo en la sección 5.3 |
-| B | ✅ **Front-end navegable** (hecho el 8-nov; ver "Estado actual"). Pendiente: push de la rama `feat/frontend-prototipo` y merge a `main` | 1,5 | `frontend/` · http://127.0.0.1:8000/app |
+| B | ✅ **Front-end navegable** (hecho el 8-nov; ver "Estado actual"). Pendiente: pull request y merge de `feat/frontend-prototipo` a `main` | 1,5 | `frontend/` · http://127.0.0.1:8000/app |
 | C | **Plan de certificación:** fase 1 (pasarela, SAQ A, SUDEBAN, SUNAVAL, contrato con el fiduciario) y fase 2 (independencia); actores; **casos de prueba = CP-01 a CP-15** de `tests/test_flujo.py` | 1,5 | Sección 5.1 |
 | D | **Tabla ISO 8583 para las láminas**, validada contra una fuente primaria y citada | (diagramas) | Sección 4 y `app/core/iso8583.py` |
 | E | **Capturas de Swagger** (`/docs`, respuesta de `POST /v1/aportes`, cierre) | — | Correr `python -m uvicorn app.main:app` **sin** `--reload` |
