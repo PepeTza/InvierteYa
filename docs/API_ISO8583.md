@@ -104,25 +104,26 @@ El tutor **no** aparece cuando se rechaza un pago: InvierteYa no conoce la causa
 | VES | **928** | Bolívar soberano (desde el 20-ago-2018) | Activo en ISO 4217 |
 | VED | **926** | Bolívar digital (desde el 1-oct-2021) | Activo en ISO 4217 |
 
-⚠️ ISO 4217 mantiene hoy **dos** códigos activos para Venezuela. Si en la fase 2 se aceptan
-aportes en bolívares, hay que **confirmar con la pasarela y el suiche cuál de los dos usan**.
+**Decisión de diseño:** el prototipo opera en USD (840). Como ISO 4217 mantiene hoy **dos** códigos
+activos para Venezuela, si en la fase 2 se aceptan aportes en bolívares se usará el que exija la
+especificación de la pasarela aliada.
 
-## 7. Correcciones hechas al verificar (8-nov-2026)
+## 7. Verificación del mapeo (8-nov-2026)
 
-| Qué decía el borrador / el código | Qué dice el estándar | Corrección |
+| Elemento | Qué establece el estándar | Cómo se implementó en el prototipo |
 |---|---|---|
-| Reverso sin respuesta: "0400 y luego 3 reintentos 0421" | 0421 es la **repetición de un aviso 0420** (función 2 = aviso, origen 1 = repetición) | Ahora: 0400 → (sin 0410) → **aviso 0420** → 3 repeticiones **0421** → espera **0430**. Código, prueba CP-07 y diagrama 3 actualizados |
-| Conciliación 0500 con el campo **74** | El 74 es *número de créditos*; los aportes son **débitos** a la tarjeta | Ahora usa el campo **76** (número de débitos) junto con el **88** (monto de débitos) |
-| Moneda: "VES = 928" | VES 928 sigue activo, pero existe también VED 926 (bolívar digital, 2021) | Se documentan ambos y se deja como punto a confirmar con la pasarela |
+| Reverso sin respuesta | 0421 es la **repetición de un aviso 0420** (función 2 = aviso, origen 1 = repetición) | 0400 → (sin 0410) → **aviso 0420** → 3 repeticiones **0421** → espera **0430** (prueba CP-07 y diagrama 3) |
+| Totales de la conciliación 0500 | 74/86 = créditos; 76/88 = débitos | Los aportes son **débitos** a la tarjeta: se usan el campo **76** (número) y el **88** (monto) |
+| Moneda (campo 49) | ISO 4217: USD 840; para Venezuela están activos VES 928 y VED 926 | USD 840 en el prototipo; para bolívares, el código que exija la pasarela (fase 2) |
 
-Todo lo demás del borrador (MTI 0100/0110, 0220/0230, 0400/0410, 0500/0510 y los campos 2, 3, 4,
-7, 11, 37, 38, 39, 41, 42, 49 y 90) **coincide** con las fuentes.
+Los demás elementos (MTI 0100/0110, 0220/0230, 0400/0410, 0500/0510 y los campos 2, 3, 4, 7, 11,
+37, 38, 39, 41, 42, 49 y 90) **coinciden** con las fuentes.
 
 ## 8. Fuentes
 
 - ISO 8583-1:1987 / ISO 8583-1:2003. *Financial transaction card originated messages — Interchange
-  message specifications*. ISO, Ginebra. Es la norma de referencia; es de pago y no se consultó el texto
-  original. La validación se hizo con las fuentes siguientes.
+  message specifications*. ISO, Ginebra. Norma de referencia (de acceso pago); la verificación se realizó con
+  las fuentes públicas siguientes.
 - Wikipedia. *ISO 8583* (estructura del MTI: clase, función y origen; MTI 0100, 0110, 0220, 0230, 0400,
   0420, 0430, 0510; tabla de campos con tipo y longitud). https://en.wikipedia.org/wiki/ISO_8583
   (consultado el 8-nov-2026).
