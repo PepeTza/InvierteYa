@@ -1,0 +1,174 @@
+{
+  "fecha_entrenamiento": "2026-11-25T13:21:14",
+  "version_scikit_learn": "1.9.1",
+  "dataset": {
+    "ruta": "data/dataset_comportamiento.csv",
+    "usuarios_unicos": 5000,
+    "filas_totales": 58004,
+    "split_temporal": {
+      "entrenamiento_cortes_meses": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "etiquetas_entrenamiento_hasta_mes": 9,
+      "filas_entrenamiento": 25000,
+      "prueba_corte_mes": 10,
+      "etiquetas_prueba_meses": [
+        11,
+        12
+      ],
+      "filas_prueba": 5000
+    }
+  },
+  "metas": {
+    "auc_roc": 0.8,
+    "recall_abandona": 0.7
+  },
+  "modelo_elegido": "gradient_boosting",
+  "umbral_elegido": 0.34,
+  "comparacion": {
+    "regresion_logistica": {
+      "mejores_hiperparametros": {
+        "C": 5.0
+      },
+      "auc_validacion_mes7": 0.8645,
+      "prueba_meses_10_12": {
+        "umbral": 0.4,
+        "exactitud": 0.7922,
+        "precision": 0.7323,
+        "recall": 0.9015,
+        "f1": 0.8081,
+        "auc_roc": 0.8836,
+        "tasa_alerta": 0.5976,
+        "tasa_real_abandono": 0.4854,
+        "matriz_confusion": {
+          "filas_real_columnas_predicho": [
+            "NO_ABANDONA",
+            "ABANDONA"
+          ],
+          "valores": [
+            [
+              1773,
+              800
+            ],
+            [
+              239,
+              2188
+            ]
+          ]
+        }
+      },
+      "cumple_metas": {
+        "auc_>=_0.80": true,
+        "recall_>=_0.70": true
+      }
+    },
+    "gradient_boosting": {
+      "mejores_hiperparametros": {
+        "max_depth": 3,
+        "learning_rate": 0.05
+      },
+      "auc_validacion_mes7": 0.8655,
+      "prueba_meses_10_12": {
+        "umbral": 0.34,
+        "exactitud": 0.8016,
+        "precision": 0.7556,
+        "recall": 0.8739,
+        "f1": 0.8105,
+        "auc_roc": 0.8863,
+        "tasa_alerta": 0.5614,
+        "tasa_real_abandono": 0.4854,
+        "matriz_confusion": {
+          "filas_real_columnas_predicho": [
+            "NO_ABANDONA",
+            "ABANDONA"
+          ],
+          "valores": [
+            [
+              1887,
+              686
+            ],
+            [
+              306,
+              2121
+            ]
+          ]
+        }
+      },
+      "cumple_metas": {
+        "auc_>=_0.80": true,
+        "recall_>=_0.70": true
+      }
+    }
+  },
+  "metricas_por_grupo": {
+    "edad": [
+      {
+        "grupo": "18-24",
+        "n": 918,
+        "auc_roc": 0.8911,
+        "precision": 0.7806,
+        "recall": 0.8683,
+        "f1": 0.8221,
+        "tasa_real": 0.5044,
+        "tasa_alerta": 0.561
+      },
+      {
+        "grupo": "25-40",
+        "n": 3098,
+        "auc_roc": 0.8857,
+        "precision": 0.7509,
+        "recall": 0.8774,
+        "f1": 0.8092,
+        "tasa_real": 0.4845,
+        "tasa_alerta": 0.5662
+      },
+      {
+        "grupo": "41+",
+        "n": 984,
+        "auc_roc": 0.8837,
+        "precision": 0.7472,
+        "recall": 0.8683,
+        "f1": 0.8032,
+        "tasa_real": 0.4705,
+        "tasa_alerta": 0.5467
+      }
+    ],
+    "ahorro_mensual": [
+      {
+        "grupo": "bajo ($5-$50)",
+        "n": 3371,
+        "auc_roc": 0.8851,
+        "precision": 0.7655,
+        "recall": 0.8944,
+        "f1": 0.8249,
+        "tasa_real": 0.5251,
+        "tasa_alerta": 0.6135
+      },
+      {
+        "grupo": "alto ($50+)",
+        "n": 1629,
+        "auc_roc": 0.8821,
+        "precision": 0.728,
+        "recall": 0.8189,
+        "f1": 0.7708,
+        "tasa_real": 0.4033,
+        "tasa_alerta": 0.4537
+      }
+    ]
+  },
+  "importancia_por_variable": {
+    "sesiones_por_mes": 0.1064,
+    "dias_desde_ultimo_aporte": 0.0376,
+    "aportes_90d": 0.0136,
+    "lecciones_vistas": 0.0015,
+    "tuvo_caida_unidad": 0.0014,
+    "pct_pagos_rechazados": 0.0005,
+    "perfil": 0.0004,
+    "monto_promedio": 0.0003,
+    "meses_activo": 0.0
+  }
+}

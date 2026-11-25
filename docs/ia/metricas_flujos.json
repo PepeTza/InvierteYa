@@ -1,0 +1,102 @@
+{
+  "fecha_generacion": "2026-11-25T13:21:20",
+  "fecha_corte": "2026-11-25",
+  "dias_entrenamiento": 305,
+  "dias_prueba": 60,
+  "modelo_elegido": "regresion_lineal_rezagos",
+  "comparacion_total": {
+    "media_movil_7d": {
+      "mae_usd": 1968.38,
+      "mape_pct": 28.86
+    },
+    "regresion_lineal_rezagos": {
+      "mae_usd": 480.01,
+      "mape_pct": 6.23
+    }
+  },
+  "por_fideicomiso": [
+    {
+      "fideicomiso_id": "liq_usd",
+      "nombre": "Liquidez USD",
+      "flujo_neto_manana_usd": 1286.64,
+      "flujo_neto_7d_usd": 9944.82,
+      "media_movil_7d": {
+        "mae_usd": 357.21,
+        "mape_pct": 30.02
+      },
+      "regresion_lineal": {
+        "mae_usd": 121.98,
+        "mape_pct": 9.47
+      },
+      "mae_usd": 121.98,
+      "mape_pct": 9.47
+    },
+    {
+      "fideicomiso_id": "rf_usd",
+      "nombre": "Renta Fija USD",
+      "flujo_neto_manana_usd": 2310.72,
+      "flujo_neto_7d_usd": 17889.82,
+      "media_movil_7d": {
+        "mae_usd": 673.69,
+        "mape_pct": 31.51
+      },
+      "regresion_lineal": {
+        "mae_usd": 261.59,
+        "mape_pct": 11.44
+      },
+      "mae_usd": 261.59,
+      "mape_pct": 11.44
+    },
+    {
+      "fideicomiso_id": "mix_bal",
+      "nombre": "Mixto Balanceado",
+      "flujo_neto_manana_usd": 2069.07,
+      "flujo_neto_7d_usd": 16219.96,
+      "media_movil_7d": {
+        "mae_usd": 560.46,
+        "mape_pct": 29.91
+      },
+      "regresion_lineal": {
+        "mae_usd": 192.12,
+        "mape_pct": 9.22
+      },
+      "mae_usd": 192.12,
+      "mape_pct": 9.22
+    },
+    {
+      "fideicomiso_id": "acc_bvc",
+      "nombre": "Acciones BVC",
+      "flujo_neto_manana_usd": 1164.03,
+      "flujo_neto_7d_usd": 9097.48,
+      "media_movil_7d": {
+        "mae_usd": 303.62,
+        "mape_pct": 27.87
+      },
+      "regresion_lineal": {
+        "mae_usd": 108.96,
+        "mape_pct": 9.03
+      },
+      "mae_usd": 108.96,
+      "mape_pct": 9.03
+    },
+    {
+      "fideicomiso_id": "crec_ves",
+      "nombre": "Crecimiento Bolívares",
+      "flujo_neto_manana_usd": 555.69,
+      "flujo_neto_7d_usd": 4331.06,
+      "media_movil_7d": {
+        "mae_usd": 139.44,
+        "mape_pct": 28.22
+      },
+      "regresion_lineal": {
+        "mae_usd": 52.37,
+        "mape_pct": 10.06
+      },
+      "mae_usd": 52.37,
+      "mape_pct": 10.06
+    }
+  ],
+  "total_manana_usd": 7386.15,
+  "total_7d_usd": 57483.14,
+  "nota": "Pronóstico basado en serie diaria sintética para planificación de lotes del fiduciario."
+}
