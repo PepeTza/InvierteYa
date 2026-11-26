@@ -1,0 +1,36 @@
+flowchart LR
+    subgraph EXT["Superficie Externa"]
+        U["Usuario App (Web / Móvil)"]
+        P["Pasarela Certificada<br/>(PCI DSS SAQ A: Tokenización PAN)"]
+    end
+
+    subgraph API["API InvierteYa (TLS 1.3 + Hardening HTTP)"]
+        MW["Middleware Seguridad + Auditoría<br/>(Cabeceras HTTP, CORS, Bitácora SHA-256)"]
+        KMS["KMS / Gestión de Llaves<br/>(KEK + DEK con rotación)"]
+    end
+
+    subgraph BRONCE["Capa Bronce · Operacional (PII Cifrada)"]
+        B1["Identidad KYC, Contratos Adhesión,<br/>Aportes y Consentimientos<br/>(AES-256-GCM en reposo)"]
+    end
+
+    subgraph PLATA["Capa Plata · Analítica IA (Seudonimizada)"]
+        P1["Tokens HMAC irreversibles<br/>0 PII · Variables de perfil y uso<br/>(Entrenamiento perfil / abandono)"]
+    end
+
+    subgraph ORO["Capa Oro · Agregada (Anónima k >= 10)"]
+        O1["Tableros y Flujos Agregados<br/>Supresión automática si celda < 10<br/>(Solo con consentimiento opt-in)"]
+    end
+
+    subgraph FID["Banco Fiduciario (Regulado SUDEBAN)"]
+        F1["Aprobación Lotes,<br/>Conciliación 3 Niveles y LC/FT"]
+    end
+
+    U -- "HTTPS / TLS 1.3 (sin PAN)" --> MW
+    U -- "PAN/CVV directo (SAQ A)" --> P
+    P -- "token_tarjeta (tok_...)" --> MW
+    MW --> B1
+    KMS -. "Cifra / rota DEK" .-> B1
+    B1 -- "Seudonimización + eliminación PII" --> P1
+    P1 -- "Agregación + supresión k >= 10" --> O1
+    B1 -- "KYC + Adhesión + Lotes propuestos" --> F1
+    O1 -- "Pronóstico agregado de flujos" --> F1
