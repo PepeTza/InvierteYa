@@ -1,6 +1,7 @@
 fastapi>=0.115
 uvicorn[standard]>=0.30
 pydantic>=2.7
+cryptography>=43.0   # AES-256-GCM en app/core/seguridad_datos.py (S3)
 pyyaml>=6.0
 matplotlib>=3.8
 pytest>=8.0

@@ -21,6 +21,7 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
+from app.core.catalogo import FIDEICOMISO_POR_DEFECTO  # noqa: E402
 from app.core.perfil import Cuestionario  # noqa: E402
 from app.core.servicio import InvierteYa  # noqa: E402
 
@@ -54,6 +55,9 @@ def correr(n: int, workers: int, semilla: int) -> dict:
     for i in range(n):
         u, tok = rng.choice(usuarios)
         monto = rng.choice([500, 1000, 2000, 3000, 5000, 10000])
+        # S3: cada fideicomiso del catálogo tiene su aporte mínimo (Mixto y Acciones BVC: $10).
+        fid = FIDEICOMISO_POR_DEFECTO[u.perfil]
+        monto = max(monto, int(s.catalogo.fideicomiso(fid)["minimo_usd"] * 100))
         aportes.append(s.crear_aporte(u.id, monto, tok, f"carga-{i}"))
 
     # Reloj simulado: W workers atienden la cola; TPS = N / tiempo total

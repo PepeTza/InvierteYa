@@ -1,81 +1,115 @@
 openapi: 3.1.0
 info:
-  title: InvierteYa API (prototipo · Sesión 2)
-  version: 0.2.0
-  description: Inversión fraccionada desde $5 a través de un fideicomiso. Pasarela,
-    adquirente, suiche, emisor, banco fiduciario, casa de bolsa y CVV están SIMULADOS.
-    Solo datos sintéticos.
-servers:
-- url: http://127.0.0.1:8000
-  description: Local
-tags:
-- name: Usuarios
-- name: Perfil y tutor
-- name: Aportes
-- name: Operaciones
-- name: Pasarela simulada
+  title: InvierteYa API (MVP · Sesión 3)
+  description: 'Inversión fraccionada desde $5 a través de un **catálogo de 5 fideicomisos**
+    administrados por un banco, con perfil de riesgo explicable (cuestionario en 2
+    tandas), aporte repartido, IA predictiva (abandono y flujos) y protección de datos
+    (AES-256-GCM, habeas data, k ≥ 10).
+
+
+    **Todo lo externo está SIMULADO:** pasarela, adquirente, suiche, emisor, banco
+    fiduciario, casa de bolsa, CVV y KMS. Solo datos sintéticos.'
+  version: 0.3.0
 paths:
   /v1/usuarios:
     post:
       tags:
       - Usuarios
-      summary: Registrar usuario (datos sintéticos)
-      security:
-      - bearerAuth: []
+      summary: Registrar
+      description: Registro (datos sintéticos). El email se guarda cifrado con AES-256-GCM.
+      operationId: registrar_v1_usuarios_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/RegistroIn'
+        required: true
       responses:
         '201':
-          description: Creado
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UsuarioOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
   /v1/usuarios/{usuario_id}/kyc:
     post:
       tags:
       - Usuarios
-      summary: KYC simulado (se comparte con el banco fiduciario)
+      summary: Kyc
+      description: 'Proveedor de KYC SIMULADO (siempre aprueba) y aporta la edad,
+        que ya no se pregunta en el
+
+        cuestionario. La edad se guarda cifrada (AES-256-GCM). El resultado se comparte
+        con el fiduciario.'
+      operationId: kyc_v1_usuarios__usuario_id__kyc_post
       security:
-      - bearerAuth: []
+      - HTTPBearer: []
       parameters:
       - name: usuario_id
         in: path
         required: true
         schema:
           type: string
+          title: Usuario Id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/KycIn'
+              - type: 'null'
+              title: Datos
       responses:
         '200':
-          description: KYC aprobado
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KycOut'
         '404':
-          description: No encontrado
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+          description: Not Found
         '422':
-          description: Regla de negocio no cumplida
+          description: Validation Error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/usuarios/{usuario_id}/adhesion:
     post:
       tags:
       - Usuarios
-      summary: Firmar contrato de adhesión al fideicomiso
+      summary: Adhesion
+      description: 'Firma electrónica del contrato de adhesión **a un fideicomiso
+        del catálogo**: el usuario pasa a ser
+
+        fideicomitente y beneficiario. Guarda sello de tiempo y hash SHA-256 del documento.
+
+        Si el fideicomiso está *Por encima de tu perfil* exige `confirmacion_riesgo_extra:
+        true`
+
+        (si no, `422 CONFIRMACION_RIESGO_REQUERIDA`).'
+      operationId: adhesion_v1_usuarios__usuario_id__adhesion_post
       security:
-      - bearerAuth: []
+      - HTTPBearer: []
       parameters:
       - name: usuario_id
         in: path
         required: true
         schema:
           type: string
+          title: Usuario Id
       requestBody:
         required: true
         content:
@@ -84,113 +118,293 @@ paths:
               $ref: '#/components/schemas/AdhesionIn'
       responses:
         '200':
-          description: Adhesión firmada
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdhesionOut'
         '404':
-          description: No encontrado
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+          description: Not Found
         '422':
-          description: Regla de negocio no cumplida
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+          description: Unprocessable Content
+  /v1/fideicomisos:
+    get:
+      tags:
+      - Fideicomisos
+      summary: Fideicomisos
+      description: 'Catálogo del banco (caché diaria) con la etiqueta de idoneidad
+        para el perfil del usuario:
+
+        `RECOMENDADO` → `COMPATIBLE` → `POR_ENCIMA_DEL_PERFIL`.'
+      operationId: fideicomisos_v1_fideicomisos_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: usuario_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Usuario Id
+      - name: riesgo_max
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 5
+            minimum: 1
+          - type: 'null'
+          description: Filtro por nivel de riesgo
+          title: Riesgo Max
+        description: Filtro por nivel de riesgo
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogoOut'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/usuarios/{usuario_id}/perfil:
     post:
       tags:
       - Perfil y tutor
-      summary: Cuestionario de 10 preguntas -> perfil + explicación + lección
+      summary: Perfil
+      description: 'Tanda 1 del cuestionario conversacional (formato S3; la edad sale
+        del KYC) o el formato de
+
+        10 preguntas de la Sesión 2. Devuelve perfil, explicación simple, qué lo cambiaría
+        y una lección.'
+      operationId: perfil_v1_usuarios__usuario_id__perfil_post
       security:
-      - bearerAuth: []
+      - HTTPBearer: []
       parameters:
       - name: usuario_id
         in: path
         required: true
         schema:
           type: string
+          title: Usuario Id
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CuestionarioIn'
+              anyOf:
+              - $ref: '#/components/schemas/CuestionarioS3In'
+              - $ref: '#/components/schemas/CuestionarioIn'
+              title: C
       responses:
         '200':
-          description: OK
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PerfilOut'
         '404':
-          description: No encontrado
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+          description: Not Found
         '422':
-          description: Regla de negocio no cumplida
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+          description: Unprocessable Content
+  /v1/usuarios/{usuario_id}/perfil/tanda2:
+    patch:
+      tags:
+      - Perfil y tutor
+      summary: Perfil Tanda2
+      description: '''Afinemos tu perfil'': hogar + quiz amistoso. Recalcula con la
+        Tanda 1 guardada.'
+      operationId: perfil_tanda2_v1_usuarios__usuario_id__perfil_tanda2_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Usuario Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tanda2In'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilOut'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Unprocessable Content
+  /v1/usuarios/{usuario_id}/perfil/revision:
+    post:
+      tags:
+      - Perfil y tutor
+      summary: Perfil Revision
+      description: 'Botón ''No estoy de acuerdo con mi perfil'': el caso pasa a revisión
+        de un asesor humano.'
+      operationId: perfil_revision_v1_usuarios__usuario_id__perfil_revision_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Usuario Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevisionIn'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevisionOut'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Unprocessable Content
   /v1/lecciones:
     get:
       tags:
       - Perfil y tutor
-      summary: 'Tutor predefinido: lección por paso, perfil y nivel'
+      summary: Leccion
+      description: 'Tutor con contenido predefinido: selecciona la lección según paso,
+        perfil y nivel.'
+      operationId: leccion_v1_lecciones_get
       security:
-      - bearerAuth: []
+      - HTTPBearer: []
       parameters:
       - name: paso
         in: query
         required: true
         schema:
-          type: string
           enum:
           - CUESTIONARIO_COMPLETO
           - ANTES_PRIMER_APORTE
           - UNIDADES_ASIGNADAS
           - VER_PORTAFOLIO
           - ANTES_RESCATE
+          type: string
+          title: Paso
       - name: perfil
         in: query
+        required: false
         schema:
-          type: string
           enum:
           - CONSERVADOR
           - MODERADO
           - AGRESIVO
+          type: string
+          default: CONSERVADOR
+          title: Perfil
       - name: conocimiento
         in: query
+        required: false
         schema:
           type: integer
-          minimum: 1
           maximum: 5
+          minimum: 1
+          default: 1
+          title: Conocimiento
       responses:
         '200':
-          description: OK
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Leccion'
+                anyOf:
+                - $ref: '#/components/schemas/Leccion'
+                - type: 'null'
+                title: Response Leccion V1 Lecciones Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/aportes:
     post:
       tags:
       - Aportes
-      summary: 'Crear aporte: autorización -> captura -> asignación de unidades (reverso
-        si falla)'
-      description: 'Si se repite la misma Idempotency-Key se devuelve el resultado
-        original (`duplicado: true`) y no se cobra dos veces.'
+      summary: Crear Aporte
+      description: 'Diagramas 1-3: autoriza, captura y asigna unidades **en cada fideicomiso
+        de la distribución**;
+
+        reversa ante timeout o falla. Comisión transparente: 1% de aporte + 2% de
+        recargo solo con TARJETA
+
+        (se cobra encima: se invierte el 100% del monto). Si se repite la misma Idempotency-Key,
+        devuelve
+
+        el resultado original (`duplicado: true`).'
+      operationId: crear_aporte_v1_aportes_post
       security:
-      - bearerAuth: []
+      - HTTPBearer: []
       parameters:
       - name: Idempotency-Key
         in: header
         required: true
         schema:
           type: string
+          description: Evita cobros dobles si se reintenta
+          title: Idempotency-Key
+        description: Evita cobros dobles si se reintenta
       requestBody:
         required: true
         content:
@@ -199,198 +413,613 @@ paths:
               $ref: '#/components/schemas/AporteIn'
       responses:
         '201':
-          description: Aporte procesado (ver campo estado)
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AporteOut'
         '404':
-          description: No encontrado
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+          description: Not Found
         '422':
-          description: Regla de negocio no cumplida
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+          description: Unprocessable Content
   /v1/aportes/{aporte_id}:
     get:
       tags:
       - Aportes
-      summary: Consultar un aporte
+      summary: Ver Aporte
+      operationId: ver_aporte_v1_aportes__aporte_id__get
       security:
-      - bearerAuth: []
+      - HTTPBearer: []
       parameters:
       - name: aporte_id
         in: path
         required: true
         schema:
           type: string
+          title: Aporte Id
       responses:
         '200':
-          description: OK
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AporteOut'
         '404':
-          description: No encontrado
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/usuarios/{usuario_id}/portafolio:
     get:
       tags:
       - Aportes
-      summary: Unidades, valor de la unidad y saldo
+      summary: Portafolio
+      description: Consolidado total y desglose por fideicomiso.
+      operationId: portafolio_v1_usuarios__usuario_id__portafolio_get
       security:
-      - bearerAuth: []
+      - HTTPBearer: []
       parameters:
       - name: usuario_id
         in: path
         required: true
         schema:
           type: string
+          title: Usuario Id
       responses:
         '200':
-          description: OK
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PortafolioOut'
         '404':
-          description: No encontrado
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+          description: Not Found
         '422':
-          description: Regla de negocio no cumplida
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/usuarios/{usuario_id}/riesgo-abandono:
+    get:
+      tags:
+      - IA predictiva
+      summary: Riesgo Abandono
+      description: 'Probabilidad de que el usuario deje de ahorrar en 60 días. **Solo
+        sugiere** un recordatorio:
+
+        nunca mueve dinero, cambia el perfil ni cobra. Respeta el consentimiento `alertas_ahorro`.'
+      operationId: riesgo_abandono_v1_usuarios__usuario_id__riesgo_abandono_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Usuario Id
+      - name: simular_inactivo
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: 'Solo demo: simula un usuario inactivo para mostrar el aviso
+            suave'
+          default: false
+          title: Simular Inactivo
+        description: 'Solo demo: simula un usuario inactivo para mostrar el aviso
+          suave'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiesgoAbandonoOut'
+        '404':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/fiduciario/pronostico-flujos:
+    get:
+      tags:
+      - IA predictiva
+      summary: Pronostico Flujos
+      description: Pronóstico de flujos netos por fideicomiso (mañana y 7 días) para
+        planificar los lotes.
+      operationId: pronostico_flujos_v1_fiduciario_pronostico_flujos_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PronosticoOut'
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - HTTPBearer: []
+  /v1/usuarios/{usuario_id}/consentimiento:
+    put:
+      tags:
+      - Privacidad
+      summary: Consentimiento
+      description: Otorga o retira, en cualquier momento, consentimientos separados
+        de los términos.
+      operationId: consentimiento_v1_usuarios__usuario_id__consentimiento_put
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Usuario Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentimientoIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsentimientoOut'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not Found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Unprocessable Content
+  /v1/usuarios/{usuario_id}/datos-personales:
+    get:
+      tags:
+      - Privacidad
+      summary: Datos Personales
+      description: 'Derecho de acceso (Constitución art. 28): qué datos guardamos,
+        para qué, con quién y cómo se protegen.'
+      operationId: datos_personales_v1_usuarios__usuario_id__datos_personales_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Usuario Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatosPersonalesOut'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Privacidad
+      summary: Suprimir Datos Personales
+      description: 'Derecho de supresión: anonimiza los datos de uso; conserva solo
+        el registro contable (LC/FT).'
+      operationId: suprimir_datos_personales_v1_usuarios__usuario_id__datos_personales_delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: usuario_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Usuario Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupresionOut'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/fiduciario/informe-agregado:
+    get:
+      tags:
+      - Privacidad
+      summary: Informe Agregado
+      description: 'Capa Oro: saldo por perfil y fideicomiso de quienes consintieron;
+        las celdas con < 10 personas
+
+        se suprimen. Nunca se comparten ni venden datos individuales.'
+      operationId: informe_agregado_v1_fiduciario_informe_agregado_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InformeAgregadoOut'
+      security:
+      - HTTPBearer: []
   /v1/operaciones/cierre:
     post:
       tags:
       - Operaciones
-      summary: 'Job T+1: liquidación, conciliación en 3 niveles y propuesta de órdenes
-        por lote'
+      summary: Cierre
+      description: 'Job T+1: liquidación de la pasarela, abono a cada fideicomiso,
+        conciliación en 3 niveles por
+
+        fideicomiso y propuesta de órdenes por lote (InvierteYa propone, el fiduciario
+        aprueba).
+
+        `inyectar_descuadre=true` simula que la pasarela omite una transacción (para
+        la demo).'
+      operationId: cierre_v1_operaciones_cierre_post
       security:
-      - bearerAuth: []
+      - HTTPBearer: []
       parameters:
       - name: fecha
         in: query
+        required: false
         schema:
-          type: string
-          format: date
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Fecha
       - name: inyectar_descuadre
         in: query
+        required: false
         schema:
           type: boolean
+          default: false
+          title: Inyectar Descuadre
       responses:
         '200':
-          description: Resultado de la conciliación y del batch
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/operaciones/kms/rotar:
+    post:
+      tags:
+      - Operaciones
+      summary: Rotar Llaves
+      description: 'KMS SIMULADO: rota la llave maestra y re-envuelve las llaves de
+        datos (los datos no se re-cifran).'
+      operationId: rotar_llaves_v1_operaciones_kms_rotar_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RotacionLlavesOut'
+      security:
+      - HTTPBearer: []
+  /v1/operaciones/auditoria:
+    get:
+      tags:
+      - Operaciones
+      summary: Auditoria
+      description: Bitácora inmutable (Res. SUDEBAN 001.21) y verificación de la cadena
+        SHA-256.
+      operationId: auditoria_v1_operaciones_auditoria_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: usuario_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Usuario Id
+      - name: limite
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 50
+          title: Limite
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/demo/forzar-escenario:
+    post:
+      tags:
+      - Operaciones
+      summary: Forzar
+      description: 'Solo para la demo: fuerza el resultado de las próximas operaciones
+        de la pasarela.'
+      operationId: forzar_v1_demo_forzar_escenario_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: escenarios
+        in: query
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+          description: APROBADA, 51, 05, 59, TIMEOUT, FALLA_CAPTURA, REVERSO_SIN_RESPUESTA
+          title: Escenarios
+        description: APROBADA, 51, 05, 59, TIMEOUT, FALLA_CAPTURA, REVERSO_SIN_RESPUESTA
+      - name: reemplazar
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Vacía la cola antes de agregar los escenarios
+          default: false
+          title: Reemplazar
+        description: Vacía la cola antes de agregar los escenarios
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/demo/reiniciar:
+    post:
+      tags:
+      - Operaciones
+      summary: Reiniciar Demo
+      description: 'Solo para la demo: borra usuarios, aportes, cierres y escenarios
+        forzados (todo vive en memoria).'
+      operationId: reiniciar_demo_v1_demo_reiniciar_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /fiduciario/v1/fideicomisos:
+    get:
+      tags:
+      - Banco fiduciario simulado
+      summary: Catalogo Banco
+      description: Catálogo que publica el banco fiduciario (simulado). InvierteYa
+        lo cachea una vez al día.
+      operationId: catalogo_banco_fiduciario_v1_fideicomisos_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogoBancoOut'
   /pasarela/v1/tokens:
     post:
       tags:
       - Pasarela simulada
-      summary: Tokenizar tarjeta de PRUEBA (el PAN no llega a InvierteYa)
+      summary: Tokenizar
+      description: 'Formulario/SDK de la pasarela: recibe el PAN (solo de PRUEBA)
+        o el teléfono de Pago Móvil
+
+        (sintético) y devuelve un token.'
+      operationId: tokenizar_pasarela_v1_tokens_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/TokenIn'
+        required: true
       responses:
         '201':
-          description: Token creado
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /pasarela/v1/authorizations:
     post:
       tags:
       - Pasarela simulada
-      summary: Autorización (ISO 8583 0100/0110)
+      summary: Autorizar
+      description: ISO 8583 0100/0110 hacia adquirente, suiche y emisor.
+      operationId: autorizar_pasarela_v1_authorizations_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AutorizacionIn'
+        required: true
       responses:
         '200':
-          description: OK
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespuestaPasarela'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /pasarela/v1/captures:
     post:
       tags:
       - Pasarela simulada
-      summary: Captura (ISO 8583 0220/0230)
+      summary: Capturar
+      description: ISO 8583 0220/0230.
+      operationId: capturar_pasarela_v1_captures_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CapturaIn'
+        required: true
       responses:
         '200':
-          description: OK
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespuestaPasarela'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /pasarela/v1/reversals:
     post:
       tags:
       - Pasarela simulada
-      summary: Reverso (ISO 8583 0400/0410; sin respuesta, aviso 0420 y repeticiones
-        0421)
+      summary: Reversar
+      description: ISO 8583 0400/0410 con campo 90; si no hay respuesta, aviso 0420
+        y repeticiones 0421.
+      operationId: reversar_pasarela_v1_reversals_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ReversoIn'
+        required: true
       responses:
         '200':
-          description: OK
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespuestaPasarela'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /pasarela/v1/refunds:
     post:
       tags:
       - Pasarela simulada
-      summary: Devolución de un cobro capturado
+      summary: Devolver
+      description: Devolución de un cobro ya capturado (cobros huérfanos detectados
+        en conciliación).
+      operationId: devolver_pasarela_v1_refunds_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/DevolucionIn'
+        required: true
       responses:
         '200':
-          description: OK
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RespuestaPasarela'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /pasarela/v1/settlements/{fecha}:
     get:
       tags:
       - Pasarela simulada
-      summary: Archivo de liquidación diario
+      summary: Liquidacion
+      description: Archivo de liquidación diario (insumo del nivel 1 de conciliación).
+      operationId: liquidacion_pasarela_v1_settlements__fecha__get
       parameters:
       - name: fecha
         in: path
@@ -398,59 +1027,177 @@ paths:
         schema:
           type: string
           format: date
+          title: Fecha
       responses:
         '200':
-          description: Transacciones, comisiones y totales
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     AdhesionIn:
       properties:
         acepta:
-          description: El usuario acepta el contrato de adhesión al fideicomiso
-          title: Acepta
           type: boolean
+          title: Acepta
+          description: El usuario acepta el contrato de adhesión al fideicomiso
+        fideicomiso_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fideicomiso Id
+          description: Fideicomiso del catálogo. Si se omite, se usa el recomendado
+            del perfil (compatibilidad S2)
+          examples:
+          - mix_bal
+        confirmacion_riesgo_extra:
+          type: boolean
+          title: Confirmacion Riesgo Extra
+          description: Obligatoria (true) si el fideicomiso está 'Por encima de tu
+            perfil'
+          default: false
+      type: object
       required:
       - acepta
       title: AdhesionIn
+    AdhesionOut:
+      properties:
+        usuario_id:
+          type: string
+          title: Usuario Id
+        adhesion:
+          type: string
+          title: Adhesion
+        fideicomitente_y_beneficiario:
+          type: boolean
+          title: Fideicomitente Y Beneficiario
+        fideicomiso_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fideicomiso Id
+        nombre_fideicomiso:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nombre Fideicomiso
+        etiqueta:
+          anyOf:
+          - type: string
+            enum:
+            - RECOMENDADO
+            - COMPATIBLE
+            - POR_ENCIMA_DEL_PERFIL
+          - type: 'null'
+          title: Etiqueta
+        confirmacion_riesgo_extra:
+          type: boolean
+          title: Confirmacion Riesgo Extra
+        sello_tiempo:
+          type: string
+          title: Sello Tiempo
+          description: ISO 8601 con zona horaria
+        hash_adhesion:
+          type: string
+          title: Hash Adhesion
+          description: SHA-256 del documento firmado (JSON canónico)
+        algoritmo_hash:
+          type: string
+          title: Algoritmo Hash
+        version_contrato:
+          type: string
+          title: Version Contrato
+        base_legal:
+          type: string
+          title: Base Legal
+        leccion:
+          anyOf:
+          - $ref: '#/components/schemas/Leccion'
+          - type: 'null'
       type: object
+      required:
+      - usuario_id
+      - adhesion
+      - fideicomitente_y_beneficiario
+      - fideicomiso_id
+      - nombre_fideicomiso
+      - etiqueta
+      - confirmacion_riesgo_extra
+      - sello_tiempo
+      - hash_adhesion
+      - algoritmo_hash
+      - version_contrato
+      - base_legal
+      - leccion
+      title: AdhesionOut
     AporteIn:
       properties:
         usuario_id:
-          title: Usuario Id
           type: string
+          title: Usuario Id
         monto:
-          description: Monto en USD (mínimo $5)
+          type: number
+          maximum: 1000.0
+          minimum: 5.0
+          title: Monto
+          description: Monto a invertir en USD (mínimo $5)
           examples:
           - 20
-          maximum: 1000
-          minimum: 5
-          title: Monto
-          type: number
         token_tarjeta:
-          description: Token emitido por la pasarela. InvierteYa nunca recibe el PAN.
-          title: Token Tarjeta
           type: string
+          title: Token Tarjeta
+          description: Token del medio de pago emitido por la pasarela. InvierteYa
+            nunca recibe el PAN ni el número de teléfono.
+        medio_pago:
+          type: string
+          enum:
+          - TARJETA
+          - PAGO_MOVIL
+          - TRANSFERENCIA
+          title: Medio Pago
+          description: 'TARJETA: 1% + 2% recargo · PAGO_MOVIL/TRANSFERENCIA: 1%'
+          default: TARJETA
+        distribucion:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Distribucion'
+            type: array
+            maxItems: 5
+            minItems: 1
+          - type: 'null'
+          title: Distribucion
+          description: 'Reparto entre fideicomisos (suma 100%). Si se omite: 100%
+            al recomendado del perfil'
+      type: object
       required:
       - usuario_id
       - monto
       - token_tarjeta
       title: AporteIn
-      type: object
     AporteOut:
       properties:
         id:
+          type: string
           title: Id
-          type: string
         usuario_id:
+          type: string
           title: Usuario Id
-          type: string
         portafolio:
+          type: string
           title: Portafolio
-          type: string
+          description: Perfil del usuario al momento del aporte
         monto:
-          title: Monto
           type: string
+          title: Monto
         estado:
+          type: string
           enum:
           - PENDIENTE
           - AUTORIZADO
@@ -461,12 +1208,12 @@ components:
           - REVERSADO
           - REVERSO_PENDIENTE
           title: Estado
-          type: string
         unidades:
           anyOf:
           - type: string
           - type: 'null'
           title: Unidades
+          description: Total de unidades (suma de todas las asignaciones)
         mensaje:
           anyOf:
           - type: string
@@ -489,31 +1236,74 @@ components:
         eventos:
           items:
             $ref: '#/components/schemas/EventoAporte'
-          title: Eventos
           type: array
+          title: Eventos
         iso8583:
-          description: Mensajes ISO 8583 SIMULADOS del tramo pasarela-suiche (demo)
           items:
             additionalProperties: true
             type: object
-          title: Iso8583
           type: array
+          title: Iso8583
+          description: Mensajes ISO 8583 SIMULADOS del tramo pasarela-suiche (demo)
         latencia_total_ms:
           anyOf:
           - type: number
           - type: 'null'
-          default: null
           title: Latencia Total Ms
         duplicado:
-          title: Duplicado
           type: boolean
+          title: Duplicado
+        medio_pago:
+          type: string
+          enum:
+          - TARJETA
+          - PAGO_MOVIL
+          - TRANSFERENCIA
+          title: Medio Pago
+          default: TARJETA
+        comision_aporte_pct:
+          type: number
+          title: Comision Aporte Pct
+          default: 1.0
+        recargo_medio_pago_pct:
+          type: number
+          title: Recargo Medio Pago Pct
+          default: 0.0
+        comision_aporte_usd:
+          type: string
+          title: Comision Aporte Usd
+          default: '0.00'
+        recargo_medio_pago_usd:
+          type: string
+          title: Recargo Medio Pago Usd
+          default: '0.00'
+        comision_total_usd:
+          type: string
+          title: Comision Total Usd
+          default: '0.00'
+        monto_cobrado:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Monto Cobrado
+          description: Monto + comisión + recargo (lo que se cobra)
+        distribucion:
+          items:
+            $ref: '#/components/schemas/Distribucion'
+          type: array
+          title: Distribucion
+        asignaciones:
+          items:
+            $ref: '#/components/schemas/Asignacion'
+          type: array
+          title: Asignaciones
+      type: object
       required:
       - id
       - usuario_id
       - portafolio
       - monto
       - estado
-      - unidades
       - mensaje
       - leccion
       - rrn
@@ -522,103 +1312,281 @@ components:
       - iso8583
       - duplicado
       title: AporteOut
+    Asignacion:
+      properties:
+        fideicomiso_id:
+          type: string
+          title: Fideicomiso Id
+        nombre:
+          type: string
+          title: Nombre
+        porcentaje:
+          type: number
+          title: Porcentaje
+        monto:
+          type: string
+          title: Monto
+        unidades:
+          type: string
+          title: Unidades
+        valor_unidad:
+          type: string
+          title: Valor Unidad
       type: object
+      required:
+      - fideicomiso_id
+      - nombre
+      - porcentaje
+      - monto
+      - unidades
+      - valor_unidad
+      title: Asignacion
     AutorizacionIn:
       properties:
         token:
+          type: string
           title: Token
-          type: string
         amount:
-          description: Monto en centavos
-          exclusiveMinimum: 0
-          title: Amount
           type: integer
+          exclusiveMinimum: 0.0
+          title: Amount
+          description: Monto en centavos
         currency:
+          type: string
           const: USD
-          default: USD
           title: Currency
-          type: string
+          default: USD
         reference:
-          title: Reference
           type: string
+          title: Reference
+      type: object
       required:
       - token
       - amount
       - reference
       title: AutorizacionIn
-      type: object
     CapturaIn:
       properties:
         authorization_id:
-          title: Authorization Id
           type: string
+          title: Authorization Id
         amount:
-          exclusiveMinimum: 0
-          title: Amount
           type: integer
+          exclusiveMinimum: 0.0
+          title: Amount
+      type: object
       required:
       - authorization_id
       - amount
       title: CapturaIn
+    CatalogoBancoOut:
+      properties:
+        banco:
+          type: string
+          title: Banco
+        fecha_valor:
+          type: string
+          title: Fecha Valor
+        publicado_en:
+          type: string
+          title: Publicado En
+        fideicomisos:
+          items:
+            $ref: '#/components/schemas/FideicomisoBanco'
+          type: array
+          title: Fideicomisos
       type: object
+      required:
+      - banco
+      - fecha_valor
+      - publicado_en
+      - fideicomisos
+      title: CatalogoBancoOut
+    CatalogoOut:
+      properties:
+        usuario_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Usuario Id
+        perfil_usuario:
+          anyOf:
+          - type: string
+            enum:
+            - CONSERVADOR
+            - MODERADO
+            - AGRESIVO
+          - type: 'null'
+          title: Perfil Usuario
+        riesgo_maximo_perfil:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Riesgo Maximo Perfil
+        nota_rendimiento:
+          type: string
+          title: Nota Rendimiento
+        actualizado_en:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actualizado En
+        fideicomisos:
+          items:
+            $ref: '#/components/schemas/FideicomisoOut'
+          type: array
+          title: Fideicomisos
+      type: object
+      required:
+      - usuario_id
+      - perfil_usuario
+      - riesgo_maximo_perfil
+      - nota_rendimiento
+      - actualizado_en
+      - fideicomisos
+      title: CatalogoOut
+    CeldaOro:
+      properties:
+        perfil:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Perfil
+        fideicomiso_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fideicomiso Id
+        suprimida:
+          type: boolean
+          title: Suprimida
+        personas:
+          anyOf:
+          - type: integer
+          - type: string
+          title: Personas
+        total:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Total
+        promedio:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Promedio
+      type: object
+      required:
+      - suprimida
+      - personas
+      - total
+      - promedio
+      title: CeldaOro
+    ConsentimientoIn:
+      properties:
+        informes_agregados:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Informes Agregados
+          description: Informes agregados anónimos (k >= 10)
+        alertas_ahorro:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Alertas Ahorro
+          description: Avisos suaves del modelo de abandono
+      type: object
+      title: ConsentimientoIn
+    ConsentimientoOut:
+      properties:
+        usuario_id:
+          type: string
+          title: Usuario Id
+        consentimientos:
+          additionalProperties:
+            type: boolean
+          type: object
+          title: Consentimientos
+        actualizado_en:
+          type: string
+          title: Actualizado En
+        historial:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Historial
+        nota:
+          type: string
+          title: Nota
+      type: object
+      required:
+      - usuario_id
+      - consentimientos
+      - actualizado_en
+      - historial
+      - nota
+      title: ConsentimientoOut
     CuestionarioIn:
       properties:
         edad:
+          type: integer
+          maximum: 100.0
+          minimum: 18.0
+          title: Edad
           examples:
           - 24
-          maximum: 100
-          minimum: 18
-          title: Edad
-          type: integer
         ingreso_rango:
+          type: integer
+          maximum: 5.0
+          minimum: 1.0
+          title: Ingreso Rango
           examples:
           - 2
-          maximum: 5
-          minimum: 1
-          title: Ingreso Rango
-          type: integer
         pct_invertible:
+          type: number
+          maximum: 100.0
+          minimum: 0.0
+          title: Pct Invertible
           examples:
           - 15
-          maximum: 100
-          minimum: 0
-          title: Pct Invertible
-          type: number
         horizonte_anios:
+          type: number
+          minimum: 0.0
+          title: Horizonte Anios
           examples:
           - 2
-          minimum: 0
-          title: Horizonte Anios
-          type: number
         objetivo:
+          type: string
           enum:
           - proteger
           - crecer
           - ganar_rapido
           title: Objetivo
-          type: string
         reaccion_caida_20:
+          type: string
           enum:
           - vender_todo
           - esperar
           - comprar_mas
           title: Reaccion Caida 20
-          type: string
         experiencia_previa:
+          type: boolean
           title: Experiencia Previa
-          type: boolean
         fondo_emergencia:
-          title: Fondo Emergencia
           type: boolean
+          title: Fondo Emergencia
         dependientes:
-          minimum: 0
+          type: integer
+          minimum: 0.0
           title: Dependientes
-          type: integer
         conocimiento:
-          maximum: 5
-          minimum: 1
-          title: Conocimiento
           type: integer
+          maximum: 5.0
+          minimum: 1.0
+          title: Conocimiento
+      type: object
       required:
       - edad
       - ingreso_rango
@@ -631,62 +1599,532 @@ components:
       - dependientes
       - conocimiento
       title: CuestionarioIn
+      description: Formato Sesión 2 (10 variables). Se sigue aceptando por compatibilidad.
+    CuestionarioS3In:
+      properties:
+        tanda:
+          type: integer
+          enum:
+          - 1
+          - 2
+          title: Tanda
+          default: 1
+        edad:
+          anyOf:
+          - type: integer
+            maximum: 100.0
+            minimum: 18.0
+          - type: 'null'
+          title: Edad
+          description: Si se omite, se toma del KYC
+        ahorro_mensual_rango:
+          anyOf:
+          - type: integer
+            enum:
+            - 1
+            - 2
+            - 3
+            - 4
+          - type: 'null'
+          title: Ahorro Mensual Rango
+          description: 1 ($5–$20) · 2 ($20–$50) · 3 ($50–$100) · 4 (> $100) · null
+            (no dice)
+          examples:
+          - 2
+        horizonte_anios:
+          type: number
+          maximum: 50.0
+          minimum: 0.0
+          title: Horizonte Anios
+          description: 0.5 (imprevisto) · 2.0 (meta 1–3 años) · 4.0 (algo grande)
+            · 7.0 (mi futuro)
+          examples:
+          - 2.0
+        objetivo:
+          type: string
+          enum:
+          - proteger
+          - crecer
+          - ganar_rapido
+          title: Objetivo
+        reaccion_caida_20:
+          type: string
+          enum:
+          - vender_todo
+          - esperar
+          - comprar_mas
+          title: Reaccion Caida 20
+        emergencia_200:
+          anyOf:
+          - type: string
+            enum:
+            - ahorros
+            - prestado
+            - no_podria
+          - type: 'null'
+          title: Emergencia 200
+          description: null = 'Prefiero no decirlo' (nunca Agresivo)
+        experiencia_tipo:
+          type: string
+          enum:
+          - ninguna
+          - ahorro_dolares
+          - caja_ahorro
+          - acciones
+          title: Experiencia Tipo
+        dependientes:
+          anyOf:
+          - type: integer
+            maximum: 5.0
+            minimum: 0.0
+          - type: 'null'
+          title: Dependientes
+        quiz_aciertos:
+          anyOf:
+          - type: integer
+            enum:
+            - 0
+            - 1
+            - 2
+          - type: 'null'
+          title: Quiz Aciertos
       type: object
+      required:
+      - horizonte_anios
+      - objetivo
+      - reaccion_caida_20
+      - experiencia_tipo
+      title: CuestionarioS3In
+      description: 'Formato Sesión 3: Tanda 1 (6 preguntas) y, opcionalmente, Tanda
+        2. `null` = ''Prefiero no decirlo''.'
+    DatosPersonalesOut:
+      properties:
+        usuario_id:
+          type: string
+          title: Usuario Id
+        suprimido:
+          type: boolean
+          title: Suprimido
+        datos_identificacion:
+          additionalProperties: true
+          type: object
+          title: Datos Identificacion
+        kyc_aprobado:
+          type: boolean
+          title: Kyc Aprobado
+        perfil:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Perfil
+        respuestas_cuestionario:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Respuestas Cuestionario
+        adhesiones:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Adhesiones
+        aportes:
+          additionalProperties: true
+          type: object
+          title: Aportes
+        consentimientos:
+          additionalProperties:
+            type: boolean
+          type: object
+          title: Consentimientos
+        historial_consentimientos:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Historial Consentimientos
+        revisiones_perfil:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Revisiones Perfil
+        finalidades:
+          items:
+            type: string
+          type: array
+          title: Finalidades
+        destinatarios:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Destinatarios
+        proteccion:
+          additionalProperties: true
+          type: object
+          title: Proteccion
+        conservacion:
+          type: string
+          title: Conservacion
+        base_legal:
+          type: string
+          title: Base Legal
+      type: object
+      required:
+      - usuario_id
+      - suprimido
+      - datos_identificacion
+      - kyc_aprobado
+      - perfil
+      - respuestas_cuestionario
+      - adhesiones
+      - aportes
+      - consentimientos
+      - historial_consentimientos
+      - revisiones_perfil
+      - finalidades
+      - destinatarios
+      - proteccion
+      - conservacion
+      - base_legal
+      title: DatosPersonalesOut
     DevolucionIn:
       properties:
         authorization_id:
-          title: Authorization Id
           type: string
+          title: Authorization Id
+      type: object
       required:
       - authorization_id
       title: DevolucionIn
+    Distribucion:
+      properties:
+        fideicomiso_id:
+          type: string
+          title: Fideicomiso Id
+          examples:
+          - rf_usd
+        porcentaje:
+          type: number
+          maximum: 100.0
+          exclusiveMinimum: 0.0
+          title: Porcentaje
+          examples:
+          - 70
       type: object
+      required:
+      - fideicomiso_id
+      - porcentaje
+      title: Distribucion
     Error:
       properties:
         codigo:
+          type: string
           title: Codigo
-          type: string
         mensaje:
-          title: Mensaje
           type: string
+          title: Mensaje
+      type: object
       required:
       - codigo
       - mensaje
       title: Error
-      type: object
     EventoAporte:
       properties:
         estado:
+          type: string
           title: Estado
-          type: string
         detalle:
-          title: Detalle
           type: string
+          title: Detalle
+      type: object
       required:
       - estado
       - detalle
       title: EventoAporte
+    FideicomisoBanco:
+      properties:
+        id:
+          type: string
+          title: Id
+        nombre:
+          type: string
+          title: Nombre
+        riesgo:
+          type: integer
+          maximum: 5.0
+          minimum: 1.0
+          title: Riesgo
+        horizonte:
+          type: string
+          title: Horizonte
+        minimo_usd:
+          type: number
+          title: Minimo Usd
+        comision_anual_pct:
+          type: number
+          title: Comision Anual Pct
+        rescate_dias:
+          type: string
+          title: Rescate Dias
+        valor_unidad:
+          type: string
+          title: Valor Unidad
+        rendimiento_anual_simulado_pct:
+          type: number
+          title: Rendimiento Anual Simulado Pct
+        composicion:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Composicion
       type: object
+      required:
+      - id
+      - nombre
+      - riesgo
+      - horizonte
+      - minimo_usd
+      - comision_anual_pct
+      - rescate_dias
+      - valor_unidad
+      - rendimiento_anual_simulado_pct
+      - composicion
+      title: FideicomisoBanco
+    FideicomisoOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        nombre:
+          type: string
+          title: Nombre
+        riesgo:
+          type: integer
+          maximum: 5.0
+          minimum: 1.0
+          title: Riesgo
+        horizonte:
+          type: string
+          title: Horizonte
+        minimo_usd:
+          type: number
+          title: Minimo Usd
+        comision_anual_pct:
+          type: number
+          title: Comision Anual Pct
+        rescate_dias:
+          type: string
+          title: Rescate Dias
+        valor_unidad:
+          type: string
+          title: Valor Unidad
+        rendimiento_anual_simulado_pct:
+          type: number
+          title: Rendimiento Anual Simulado Pct
+        composicion:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Composicion
+        etiqueta:
+          anyOf:
+          - type: string
+            enum:
+            - RECOMENDADO
+            - COMPATIBLE
+            - POR_ENCIMA_DEL_PERFIL
+          - type: 'null'
+          title: Etiqueta
+          description: None si el usuario aún no tiene perfil
+        etiqueta_texto:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Etiqueta Texto
+        requiere_confirmacion_riesgo:
+          type: boolean
+          title: Requiere Confirmacion Riesgo
+        adhesion_firmada:
+          type: boolean
+          title: Adhesion Firmada
+      type: object
+      required:
+      - id
+      - nombre
+      - riesgo
+      - horizonte
+      - minimo_usd
+      - comision_anual_pct
+      - rescate_dias
+      - valor_unidad
+      - rendimiento_anual_simulado_pct
+      - composicion
+      - requiere_confirmacion_riesgo
+      - adhesion_firmada
+      title: FideicomisoOut
+    FideicomisoPortafolio:
+      properties:
+        fideicomiso_id:
+          type: string
+          title: Fideicomiso Id
+        nombre:
+          type: string
+          title: Nombre
+        riesgo:
+          type: integer
+          title: Riesgo
+        unidades:
+          type: string
+          title: Unidades
+        valor_unidad:
+          type: string
+          title: Valor Unidad
+        saldo:
+          type: string
+          title: Saldo
+        composicion:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Composicion
+        comision_anual_pct:
+          type: number
+          title: Comision Anual Pct
+        aportes:
+          type: integer
+          title: Aportes
+        etiqueta:
+          anyOf:
+          - type: string
+            enum:
+            - RECOMENDADO
+            - COMPATIBLE
+            - POR_ENCIMA_DEL_PERFIL
+          - type: 'null'
+          title: Etiqueta
+      type: object
+      required:
+      - fideicomiso_id
+      - nombre
+      - riesgo
+      - unidades
+      - valor_unidad
+      - saldo
+      - composicion
+      - comision_anual_pct
+      - aportes
+      title: FideicomisoPortafolio
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    InformeAgregadoOut:
+      properties:
+        k_minimo:
+          type: integer
+          title: K Minimo
+        dimensiones:
+          items:
+            type: string
+          type: array
+          title: Dimensiones
+        metrica:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Metrica
+        celdas:
+          items:
+            $ref: '#/components/schemas/CeldaOro'
+          type: array
+          title: Celdas
+        celdas_publicadas:
+          type: integer
+          title: Celdas Publicadas
+        celdas_suprimidas:
+          type: integer
+          title: Celdas Suprimidas
+        personas_que_consintieron:
+          type: integer
+          title: Personas Que Consintieron
+        nota:
+          type: string
+          title: Nota
+      type: object
+      required:
+      - k_minimo
+      - dimensiones
+      - metrica
+      - celdas
+      - celdas_publicadas
+      - celdas_suprimidas
+      - personas_que_consintieron
+      - nota
+      title: InformeAgregadoOut
+    KycIn:
+      properties:
+        edad:
+          anyOf:
+          - type: integer
+            maximum: 100.0
+            minimum: 18.0
+          - type: 'null'
+          title: Edad
+          description: Edad verificada por el KYC simulado (default 24)
+          examples:
+          - 24
+      type: object
+      title: KycIn
+    KycOut:
+      properties:
+        usuario_id:
+          type: string
+          title: Usuario Id
+        kyc:
+          type: string
+          title: Kyc
+        compartido_con_fiduciario:
+          type: boolean
+          title: Compartido Con Fiduciario
+        edad_kyc:
+          type: integer
+          title: Edad Kyc
+      type: object
+      required:
+      - usuario_id
+      - kyc
+      - compartido_con_fiduciario
+      - edad_kyc
+      title: KycOut
     Leccion:
       properties:
         id:
+          type: string
           title: Id
-          type: string
         paso:
+          type: string
           title: Paso
-          type: string
         perfil:
+          type: string
           title: Perfil
-          type: string
         nivel:
+          type: string
           title: Nivel
-          type: string
         titulo:
+          type: string
           title: Titulo
-          type: string
         texto:
-          title: Texto
           type: string
+          title: Texto
+      type: object
       required:
       - id
       - paso
@@ -695,81 +2133,109 @@ components:
       - titulo
       - texto
       title: Leccion
-      type: object
     PerfilOut:
       properties:
         perfil:
+          type: string
           enum:
           - CONSERVADOR
           - MODERADO
           - AGRESIVO
           title: Perfil
-          type: string
         puntaje:
-          title: Puntaje
           type: number
+          title: Puntaje
         puntaje_maximo:
-          title: Puntaje Maximo
           type: integer
+          title: Puntaje Maximo
         explicacion:
-          title: Explicacion
           type: string
+          title: Explicacion
         factores_suben:
-          description: Lo que sube la tolerancia al riesgo
           items:
             type: string
+          type: array
           title: Factores Suben
-          type: array
+          description: Lo que sube la tolerancia al riesgo
         factores_moderan:
-          description: Lo que la modera
           items:
             type: string
-          title: Factores Moderan
           type: array
+          title: Factores Moderan
+          description: Lo que la modera
         avisos:
           items:
             type: string
-          title: Avisos
           type: array
+          title: Avisos
         leccion:
           anyOf:
           - $ref: '#/components/schemas/Leccion'
           - type: 'null'
         motor:
-          title: Motor
           type: string
+          title: Motor
         perfil_reglas:
           anyOf:
-          - enum:
+          - type: string
+            enum:
             - CONSERVADOR
             - MODERADO
             - AGRESIVO
-            type: string
           - type: 'null'
-          default: null
-          description: Perfil según las reglas de idoneidad (respaldo y comparación)
           title: Perfil Reglas
+          description: Perfil según las reglas de idoneidad (respaldo y comparación)
         probabilidad:
           anyOf:
           - type: number
           - type: 'null'
-          default: null
-          description: Probabilidad del perfil según el modelo baseline
           title: Probabilidad
+          description: Probabilidad del perfil según el modelo
         probabilidades:
           anyOf:
           - additionalProperties:
               type: number
             type: object
           - type: 'null'
-          default: null
-          description: Probabilidad de cada perfil
           title: Probabilidades
+          description: Probabilidad de cada perfil
         revision_humana:
-          default: false
-          description: 'True si la probabilidad es < 60%: un asesor revisa el caso'
-          title: Revision Humana
           type: boolean
+          title: Revision Humana
+          description: 'True si la probabilidad es < 60%: un asesor revisa el caso'
+          default: false
+        tanda_completada:
+          type: integer
+          title: Tanda Completada
+          default: 2
+        campos_omitidos:
+          items:
+            type: string
+          type: array
+          title: Campos Omitidos
+        que_cambiaria:
+          items:
+            type: string
+          type: array
+          title: Que Cambiaria
+          description: Qué respuesta cambiaría el perfil
+        aviso_transparencia:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Aviso Transparencia
+        nota_rendimiento:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nota Rendimiento
+        fideicomiso_recomendado:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fideicomiso Recomendado
+          description: Fideicomiso principal sugerido para el perfil
+      type: object
       required:
       - perfil
       - puntaje
@@ -779,38 +2245,49 @@ components:
       - leccion
       - motor
       title: PerfilOut
-      type: object
     PortafolioOut:
       properties:
         usuario_id:
-          title: Usuario Id
           type: string
+          title: Usuario Id
         portafolio:
           anyOf:
           - type: string
           - type: 'null'
           title: Portafolio
         unidades:
+          type: string
           title: Unidades
-          type: string
         valor_unidad:
+          type: string
           title: Valor Unidad
-          type: string
+          description: Valor promedio ponderado de la unidad (consolidado)
         saldo:
-          title: Saldo
           type: string
+          title: Saldo
         composicion:
           additionalProperties:
             type: integer
-          title: Composicion
           type: object
+          title: Composicion
         aportes:
-          title: Aportes
           type: integer
+          title: Aportes
         leccion:
           anyOf:
           - $ref: '#/components/schemas/Leccion'
           - type: 'null'
+        fideicomisos:
+          items:
+            $ref: '#/components/schemas/FideicomisoPortafolio'
+          type: array
+          title: Fideicomisos
+        nota_rendimiento:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nota Rendimiento
+      type: object
       required:
       - usuario_id
       - portafolio
@@ -821,29 +2298,90 @@ components:
       - aportes
       - leccion
       title: PortafolioOut
+    PronosticoFideicomiso:
+      properties:
+        fideicomiso_id:
+          type: string
+          title: Fideicomiso Id
+        nombre:
+          type: string
+          title: Nombre
+        flujo_neto_manana_usd:
+          type: number
+          title: Flujo Neto Manana Usd
+        flujo_neto_7d_usd:
+          type: number
+          title: Flujo Neto 7D Usd
+        mae_usd:
+          type: number
+          title: Mae Usd
+        mape_pct:
+          type: number
+          title: Mape Pct
       type: object
+      required:
+      - fideicomiso_id
+      - nombre
+      - flujo_neto_manana_usd
+      - flujo_neto_7d_usd
+      - mae_usd
+      - mape_pct
+      title: PronosticoFideicomiso
+    PronosticoOut:
+      properties:
+        modelo_elegido:
+          type: string
+          title: Modelo Elegido
+        fecha_corte:
+          type: string
+          title: Fecha Corte
+        por_fideicomiso:
+          items:
+            $ref: '#/components/schemas/PronosticoFideicomiso'
+          type: array
+          title: Por Fideicomiso
+        total_manana_usd:
+          type: number
+          title: Total Manana Usd
+        total_7d_usd:
+          type: number
+          title: Total 7D Usd
+        nota:
+          type: string
+          title: Nota
+      type: object
+      required:
+      - modelo_elegido
+      - fecha_corte
+      - por_fideicomiso
+      - total_manana_usd
+      - total_7d_usd
+      - nota
+      title: PronosticoOut
     RegistroIn:
       properties:
         nombre:
+          type: string
+          maxLength: 120
+          title: Nombre
           examples:
           - María Pérez (dato sintético)
-          title: Nombre
-          type: string
         email:
+          type: string
+          maxLength: 254
+          title: Email
           examples:
           - maria@example.com
-          title: Email
-          type: string
+      type: object
       required:
       - nombre
       - email
       title: RegistroIn
-      type: object
     RespuestaPasarela:
       properties:
         status:
-          title: Status
           type: string
+          title: Status
         response_code:
           anyOf:
           - type: string
@@ -865,14 +2403,15 @@ components:
           - type: 'null'
           title: Rrn
         latencia_ms:
-          title: Latencia Ms
           type: number
+          title: Latencia Ms
         iso:
           items:
             additionalProperties: true
             type: object
-          title: Iso
           type: array
+          title: Iso
+      type: object
       required:
       - status
       - response_code
@@ -882,66 +2421,258 @@ components:
       - latencia_ms
       - iso
       title: RespuestaPasarela
-      type: object
     ReversoIn:
       properties:
         original_reference:
-          description: authorization_id de la transacción original
-          title: Original Reference
           type: string
+          title: Original Reference
+          description: authorization_id de la transacción original
         reason:
+          type: string
           enum:
           - TIMEOUT
           - FALLA_CAPTURA
           - DUPLICADO
           - OTRO
           title: Reason
-          type: string
+      type: object
       required:
       - original_reference
       - reason
       title: ReversoIn
+    RevisionIn:
+      properties:
+        motivo:
+          type: string
+          maxLength: 500
+          minLength: 3
+          title: Motivo
+          examples:
+          - Creo que mi tolerancia es más conservadora
       type: object
+      required:
+      - motivo
+      title: RevisionIn
+    RevisionOut:
+      properties:
+        revision_id:
+          type: string
+          title: Revision Id
+        estado:
+          type: string
+          const: PENDIENTE_ASESOR
+          title: Estado
+        perfil_actual:
+          type: string
+          enum:
+          - CONSERVADOR
+          - MODERADO
+          - AGRESIVO
+          title: Perfil Actual
+        mensaje:
+          type: string
+          title: Mensaje
+      type: object
+      required:
+      - revision_id
+      - estado
+      - perfil_actual
+      - mensaje
+      title: RevisionOut
+    RiesgoAbandonoOut:
+      properties:
+        usuario_id:
+          type: string
+          title: Usuario Id
+        probabilidad_abandono:
+          type: number
+          title: Probabilidad Abandono
+        en_riesgo:
+          type: boolean
+          title: En Riesgo
+        nivel_riesgo:
+          type: string
+          enum:
+          - BAJO
+          - MEDIO
+          - ALTO
+          title: Nivel Riesgo
+        umbral_alerta:
+          type: number
+          title: Umbral Alerta
+        factores:
+          items:
+            type: string
+          type: array
+          title: Factores
+        sugerencia_suave:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sugerencia Suave
+        accion_permitida:
+          type: string
+          const: SOLO_SUGERIR_RECORDATORIO
+          title: Accion Permitida
+        aviso_etico:
+          type: string
+          title: Aviso Etico
+        motor:
+          type: string
+          title: Motor
+        consentimiento_alertas:
+          type: boolean
+          title: Consentimiento Alertas
+          description: Si es false no se muestra la sugerencia
+        datos_simulados:
+          type: boolean
+          title: Datos Simulados
+          description: True si se usó ?simular_inactivo=true (demo)
+        variables:
+          additionalProperties: true
+          type: object
+          title: Variables
+          description: Variables que recibió el modelo (transparencia)
+      type: object
+      required:
+      - usuario_id
+      - probabilidad_abandono
+      - en_riesgo
+      - nivel_riesgo
+      - umbral_alerta
+      - factores
+      - sugerencia_suave
+      - accion_permitida
+      - aviso_etico
+      - motor
+      - consentimiento_alertas
+      - datos_simulados
+      - variables
+      title: RiesgoAbandonoOut
+    RotacionLlavesOut:
+      properties:
+        version_anterior:
+          type: integer
+          title: Version Anterior
+        version_activa:
+          type: integer
+          title: Version Activa
+        registros_reenvueltos:
+          type: integer
+          title: Registros Reenvueltos
+        kms:
+          additionalProperties: true
+          type: object
+          title: Kms
+      type: object
+      required:
+      - version_anterior
+      - version_activa
+      - registros_reenvueltos
+      - kms
+      title: RotacionLlavesOut
+    SupresionOut:
+      properties:
+        usuario_id:
+          type: string
+          title: Usuario Id
+        estado:
+          type: string
+          title: Estado
+        seudonimo:
+          type: string
+          title: Seudonimo
+        suprimido:
+          items:
+            type: string
+          type: array
+          title: Suprimido
+        conservado:
+          items:
+            type: string
+          type: array
+          title: Conservado
+        motivo_conservacion:
+          type: string
+          title: Motivo Conservacion
+      type: object
+      required:
+      - usuario_id
+      - estado
+      - seudonimo
+      - suprimido
+      - conservado
+      - motivo_conservacion
+      title: SupresionOut
+    Tanda2In:
+      properties:
+        dependientes:
+          anyOf:
+          - type: integer
+            maximum: 5.0
+            minimum: 0.0
+          - type: 'null'
+          title: Dependientes
+          examples:
+          - 0
+        quiz_aciertos:
+          anyOf:
+          - type: integer
+            enum:
+            - 0
+            - 1
+            - 2
+          - type: 'null'
+          title: Quiz Aciertos
+          examples:
+          - 2
+      type: object
+      required:
+      - dependientes
+      - quiz_aciertos
+      title: Tanda2In
     TokenIn:
       properties:
         pan:
-          description: SOLO números de tarjeta de PRUEBA
+          type: string
+          title: Pan
+          description: SOLO números de tarjeta de PRUEBA (o teléfono sintético de
+            Pago Móvil)
           examples:
           - '4111111111111111'
-          title: Pan
-          type: string
+      type: object
       required:
       - pan
       title: TokenIn
-      type: object
     TokenOut:
       properties:
         token:
-          title: Token
           type: string
+          title: Token
+      type: object
       required:
       - token
       title: TokenOut
-      type: object
     UsuarioOut:
       properties:
         usuario_id:
+          type: string
           title: Usuario Id
-          type: string
         nombre:
-          title: Nombre
           type: string
+          title: Nombre
         kyc_aprobado:
+          type: boolean
           title: Kyc Aprobado
-          type: boolean
         adhesion_firmada:
-          title: Adhesion Firmada
           type: boolean
+          title: Adhesion Firmada
         perfil:
           anyOf:
           - type: string
           - type: 'null'
           title: Perfil
+      type: object
       required:
       - usuario_id
       - nombre
@@ -949,11 +2680,57 @@ components:
       - adhesion_firmada
       - perfil
       title: UsuarioOut
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
       type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
   securitySchemes:
-    bearerAuth:
+    HTTPBearer:
       type: http
+      description: 'Simulado: usar `demo-token`. En producción, OAuth2/JWT validado
+        en el API Gateway.'
       scheme: bearer
-      bearerFormat: JWT
-      description: 'Simulado: usar `demo-token`. En producción, OAuth2/JWT en el API
-        Gateway.'
+tags:
+- name: Usuarios
+  description: Registro, KYC simulado y contrato de adhesión por fideicomiso
+- name: Fideicomisos
+  description: Catálogo del banco etiquetado por idoneidad
+- name: Perfil y tutor
+  description: Cuestionario en 2 tandas, perfil, revisión humana y lecciones
+- name: Aportes
+  description: Aporte repartido, comisiones, unidades por fideicomiso y reverso
+- name: IA predictiva
+  description: Riesgo de abandono (solo sugiere) y pronóstico de flujos
+- name: Privacidad
+  description: Consentimiento, habeas data (art. 28) e informes agregados Oro
+- name: Operaciones
+  description: Cierre del día (conciliación por fideicomiso), batch, KMS y auditoría
+- name: Banco fiduciario simulado
+  description: Catálogo que publica el banco (mock)
+- name: Pasarela simulada
+  description: Lo que expone la pasarela aliada (mock)
+servers:
+- url: http://127.0.0.1:8000
+  description: Local

@@ -147,7 +147,9 @@ def test_cp13_conciliacion_cuadra_y_batch_aprobado(entorno):
     r = s.cerrar_dia(date.today())
     assert r["conciliado"] is True
     assert r["batch"]["aprobada"] is True
-    assert {o["instrumento"] for o in r["propuesta_ordenes"]} == {"renta_fija", "fondos", "acciones"}
+    # S3: el perfil Conservador invierte por defecto en "Renta Fija USD" (80% renta fija, 20% fondos)
+    assert {o["fideicomiso_id"] for o in r["propuesta_ordenes"]} == {"rf_usd"}
+    assert {o["instrumento"] for o in r["propuesta_ordenes"]} == {"renta_fija", "fondos"}
 
 
 def test_cp14_conciliacion_detecta_descuadre(entorno):
@@ -168,4 +170,4 @@ def test_cp15_el_cierre_no_se_duplica(entorno):
     primero = s.cerrar_dia(date.today())
     segundo = s.cerrar_dia(date.today())
     assert primero["conciliado"] and segundo["ya_cerrado"] is True
-    assert s.fideicomiso.estado_posiciones()["CONSERVADOR"] == 2000
+    assert s.fideicomiso.estado_posiciones()["rf_usd"] == 2000      # se invierte el 100% del aporte

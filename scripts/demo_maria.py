@@ -78,5 +78,5 @@ for n in c["niveles"]:
     print(f"Nivel {n['nivel']}: {'cuadra' if n['cuadra'] else 'NO cuadra'}")
 print("Propuesta de órdenes (InvierteYa propone, el fiduciario aprueba):")
 for o in c["propuesta_ordenes"]:
-    print(f"   {o['portafolio']:<12} {o['instrumento']:<11} ${o['monto_centavos'] / 100:,.2f}")
+    print(f"   {o['fideicomiso_id']:<12} {o['instrumento']:<11} ${o['monto_centavos'] / 100:,.2f}")
 print(f"Batch: {c['batch']}")
